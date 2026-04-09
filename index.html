@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Dinamica 2026</title>
+    <title>Agenda Dinamica Pro</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -57,7 +57,7 @@
 <script>
     // --- CONFIGURAZIONE FIREBASE ---
     const firebaseConfig = {
-        apiKey: "AIzaSy...", // Sostituisci i puntini con la tua chiave intera se non l'hai copiata tutta
+        apiKey: "AIzaSy...", 
         authDomain: "tuo-progetto.firebaseapp.com",
         databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/",
         projectId: "tuo-progetto",
@@ -70,7 +70,6 @@
     const db = firebase.database();
     let selectedDate = "";
     
-    // Lista base che parte dalle 09:00
     const oreBase = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#ffeb3b','V','#333'], def:['#ddd',''] };
 
@@ -106,36 +105,45 @@
             const grid = document.getElementById('gridOraria');
             grid.innerHTML = "";
             
-            // Uniamo le ore base con eventuali ore extra salvate nel DB
-            let oreFinali = [...oreBase];
-            Object.values(dati).forEach(v => {
-                if(v.h && !oreFinali.includes(v.h)) oreFinali.push(v.h);
+            // Crea lista orari unica (Base + Extra del DB)
+            let mappaOrari = {};
+            
+            // 1. Inserisci ore base
+            oreBase.forEach(o => { mappaOrari[o] = {h:o, id:"slot_"+o.replace(/:/g,"_")}; });
+            
+            // 2. Leggi dati dal DB (compatibilità vecchio/nuovo)
+            Object.keys(dati).forEach(key => {
+                const v = dati[key];
+                if(v.h) {
+                    mappaOrari[v.h] = {h:v.h, id:key, data:v};
+                }
             });
-            oreFinali.sort();
 
-            oreFinali.forEach((o, index) => {
-                // Pulizia ID per Firebase
-                const idSafe = o ? o.replace(/:/g, "_") : "extra_"+index;
-                const v = dati[idSafe] || {t:"", c:"def", h:o, n:false};
+            // Ordina e renderizza
+            const oreFinali = Object.values(mappaOrari).sort((a,b) => a.h.localeCompare(b.h));
+
+            oreFinali.forEach((obj) => {
+                const id = obj.id;
+                const v = dati[id] || {t:"", c:"def", h:obj.h, n:false};
                 const c = colMap[v.c] || colMap.def;
                 
                 grid.innerHTML += `
-                    <div class="slot" id="cont-${idSafe}" style="border-left-color:${c[0]}">
+                    <div class="slot" style="border-left-color:${c[0]}">
                         <div class="slot-main">
-                            <input type="text" class="ora-input" id="h-${idSafe}" value="${v.h || ''}" onblur="salva('${idSafe}')">
-                            <textarea id="t-${idSafe}" class="nota-input" oninput="autoHeight(this)" onblur="salva('${idSafe}')" placeholder="...">${v.t || ''}</textarea>
-                            <span class="notif-btn ${v.n?'active':''}" id="n-${idSafe}" onclick="toggleNotif('${idSafe}')">🔔</span>
+                            <input type="text" class="ora-input" id="h-${id}" value="${v.h || ''}" onblur="salva('${id}')">
+                            <textarea id="t-${id}" class="nota-input" oninput="autoHeight(this)" onblur="salva('${id}')" placeholder="...">${v.t || ''}</textarea>
+                            <span class="notif-btn ${v.n?'active':''}" id="n-${id}" onclick="toggleNotif('${id}')">🔔</span>
                         </div>
                         <div class="actions">
                             <div class="dots">
                                 ${Object.entries(colMap).filter(x=>x[0]!='def').map(([key, val]) => `
-                                    <div class="dot" style="background:${val[0]}" onclick="salva('${idSafe}','${key}')">${val[1]}</div>
+                                    <div class="dot" style="background:${val[0]}" onclick="salva('${id}','${key}')">${val[1]}</div>
                                 `).join('')}
-                                <div class="dot" style="background:#eee;color:#999" onclick="eliminaRiga('${idSafe}')">×</div>
+                                <div class="dot" style="background:#eee;color:#999" onclick="eliminaRiga('${id}')">×</div>
                             </div>
                         </div>
                     </div>`;
-                setTimeout(() => { const ta = document.getElementById('t-'+idSafe); if(ta) autoHeight(ta); }, 50);
+                setTimeout(() => { const ta = document.getElementById('t-'+id); if(ta) autoHeight(ta); }, 50);
             });
         });
     }
@@ -150,16 +158,12 @@
         
         d.once('value').then(s => {
             const vecchio = s.val() || {};
-            if(!txt && !ora && colore === undefined && !vecchio.t) {
-                d.remove();
-            } else {
-                d.update({
-                    t: txt || "",
-                    h: ora || "",
-                    c: colore || vecchio.c || "def",
-                    n: nState || false
-                });
-            }
+            d.update({
+                t: txt || "",
+                h: ora || "",
+                c: colore || vecchio.c || "def",
+                n: nState || false
+            });
         });
     }
 
@@ -171,8 +175,7 @@
 
     function resetOrari() {
         if(confirm("Svuota tutti gli orari di oggi?")) {
-            const inputs = document.querySelectorAll('.ora-input');
-            inputs.forEach(i => {
+            document.querySelectorAll('.ora-input').forEach(i => {
                 i.value = "";
                 salva(i.id.replace('h-', ''));
             });
@@ -196,8 +199,7 @@
 
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
-        const tot = new Date(y, m, 0).getDate();
-        for (let i = 1; i <= tot; i++) {
+        for (let i = 1; i <= new Date(y, m, 0).getDate(); i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const cell = document.createElement('div');
             cell.className = "cell-mese";
