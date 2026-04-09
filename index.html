@@ -10,21 +10,20 @@
         :root { --bg: #f0f2f5; --p: #1a237e; --r: #2196f3; --a: #4caf50; --d: #ff9800; --v: #ffeb3b; --festivo: #d32f2f; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; overflow-x: hidden; }
         
+        /* HEADER */
         .header { background: var(--p); color: white; padding: 15px 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
         .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
         #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; }
 
-        /* STRISCIA GIORNI */
+        /* VISTA GIORNO */
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .day-item { min-width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; }
         .day-item b { font-size: 1.3rem; }
-        .day-item span { font-size: 0.7rem; text-transform: uppercase; }
         .day-item.holiday { background: var(--festivo); color: white; border-color: var(--festivo); }
-        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.1); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
-        /* TITOLO GIORNATA */
-        .day-title-container { padding: 10px; background: #fff; margin-bottom: 10px; border-bottom: 2px solid #eee; }
+        .day-title-container { padding: 10px; background: #fff; margin-bottom: 10px; }
         .day-title-input { width: 100%; border: 2px dashed #ccc; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; color: var(--p); box-sizing: border-box; text-align: center; background: #fffbe6; }
 
         .content { padding: 10px; padding-bottom: 100px; }
@@ -33,24 +32,26 @@
         .ora-input { width: 90px; border: none; font-weight: bold; color: var(--p); background: #f0f4f8; padding: 8px; border-radius: 6px; text-align: center; }
         .nota-input { flex: 1; border: none; font-size: 16px; padding: 10px; background: #f8f9fa; border-radius: 8px; resize: none; min-height: 40px; }
 
+        /* VISTA MESE - OTTIMIZZATA */
+        #vistaMese { display: none; padding: 5px; background: #fff; }
+        .header-mese { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 12px; padding: 10px 0; color: #666; }
+        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; border: 1px solid #ccc; }
+        .cell-mese { background: white; min-height: 110px; padding: 4px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+        .cell-mese b { font-size: 14px; margin-bottom: 4px; display: block; }
+        .cell-mese.holiday b { color: var(--festivo); }
+        
+        /* Etichette nel mese più leggibili */
+        .mese-title-tag { background: #fff9c4; color: #827717; font-size: 9px; font-weight: bold; padding: 2px; border-radius: 3px; border: 1px solid #fbc02d; line-height: 1.1; word-wrap: break-word; }
+        .mese-app-tag { color: white; padding: 2px 3px; font-size: 9px; border-radius: 3px; line-height: 1.2; word-wrap: break-word; font-weight: 500; }
+
         .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .dots { display: flex; gap: 8px; }
-        .dot { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; cursor: pointer; border: none; }
+        .dot { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; cursor: pointer; }
 
-        /* MODALE */
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; }
         .modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         .btn-action { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
-
-        /* MESE */
-        #vistaMese { display: none; padding: 8px; }
-        .header-mese { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 12px; padding-bottom: 5px; }
-        .header-mese div.holiday { color: var(--festivo); }
-        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #ddd; }
-        .cell-mese { background: white; min-height: 95px; padding: 4px; cursor: pointer; overflow: hidden; }
-        .cell-mese.holiday b { color: var(--festivo); }
-        .mese-title-tag { background: #fffbe6; color: #856404; font-size: 8px; font-weight: 900; border: 1px solid #ffeeba; padding: 1px; margin-bottom: 2px; text-transform: uppercase; border-radius: 2px; }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; z-index: 4000; }
         .tool-btn { width: 60px; height: 60px; border-radius: 50%; border: none; color: white; font-size: 35px; background: var(--a); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
@@ -85,13 +86,13 @@
 <div id="vistaGiorno">
     <div class="calendar-strip" id="calendarStrip"></div>
     <div class="day-title-container">
-        <input type="text" id="dayTitleInput" class="day-title-input" placeholder="TITOLO GIORNATA (es. Ferie, Turno Mattina...)" onblur="salvaTitolo(this.value)">
+        <input type="text" id="dayTitleInput" class="day-title-input" placeholder="TITOLO GIORNATA (es. Ferie...)" onblur="salvaTitolo(this.value)">
     </div>
     <div class="content" id="gridOraria"></div>
 </div>
 
 <div id="vistaMese">
-    <div class="header-mese"><div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div><div>Ven</div><div>Sab</div><div class="holiday">Dom</div></div>
+    <div class="header-mese"><div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div><div>Ven</div><div>Sab</div><div style="color:var(--festivo)">Dom</div></div>
     <div class="grid-mese" id="gridMese"></div>
 </div>
 
@@ -108,7 +109,7 @@
     
     let selectedDate = "";
     const oreBase = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
-    const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#ffeb3b','V','#333'], def:['#ddd',''] };
+    const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V','#333'], def:['#ddd',''] };
     const wNames = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
     const festivi2026 = ["2026-01-01", "2026-01-06", "2026-04-05", "2026-04-06", "2026-04-25", "2026-05-01", "2026-06-02", "2026-08-15", "2026-11-01", "2026-12-08", "2026-12-25", "2026-12-26"];
 
@@ -153,13 +154,7 @@
             const container = document.getElementById('calendarStrip');
             container.scrollTo({ left: activeItem.offsetLeft - (container.offsetWidth / 2) + (activeItem.offsetWidth / 2), behavior: 'smooth' });
         }
-        
-        // Carica Titolo Giornata
-        db.ref('titoli/' + dStr).on('value', snap => {
-            document.getElementById('dayTitleInput').value = snap.val() || "";
-        });
-
-        // Carica Orari
+        db.ref('titoli/' + dStr).on('value', snap => { document.getElementById('dayTitleInput').value = snap.val() || ""; });
         db.ref('agenda/' + dStr).on('value', snap => {
             const dati = snap.val() || {};
             const grid = document.getElementById('gridOraria'); grid.innerHTML = "";
@@ -189,7 +184,6 @@
     }
 
     function salvaTitolo(val) { db.ref('titoli/' + selectedDate).set(val); }
-
     function salva(id, ora, testo, colore) {
         const ref = db.ref('agenda/'+selectedDate+'/'+id);
         ref.once('value').then(s => {
@@ -202,7 +196,7 @@
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
         const firstDay = new Date(y, m-1, 1).getDay();
         const shift = (firstDay === 0 ? 6 : firstDay - 1); 
-        for(let s=0; s<shift; s++) gm.innerHTML += `<div class="cell-mese cell-empty"></div>`;
+        for(let s=0; s<shift; s++) gm.innerHTML += `<div class="cell-mese" style="background:#f0f0f0"></div>`;
         
         for (let i = 1; i <= new Date(y, m, 0).getDate(); i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
@@ -211,17 +205,15 @@
             cell.onclick = () => { switchView('giorno'); selectDay(ds, true); };
             gm.appendChild(cell);
             
-            // Listener per Titolo nel Mese
             db.ref('titoli/' + ds).on('value', s => {
                 const divT = document.getElementById("title-m-"+ds); if(!divT) return;
-                divT.innerHTML = s.val() ? `<div class="mese-title-tag">${s.val().substring(0,12)}</div>` : "";
+                divT.innerHTML = s.val() ? `<div class="mese-title-tag">${s.val()}</div>` : "";
             });
 
-            // Listener per Appuntamenti nel Mese
             db.ref('agenda/'+ds).on('value', s => {
                 const d = s.val() || {};
                 const div = document.getElementById("m-"+ds); if(!div) return;
-                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div style="background:${colMap[x.c][0]};color:white;padding:1px;margin-top:1px;font-size:7px;border-radius:2px">${x.t.substring(0,6)}</div>`).join('');
+                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div class="mese-app-tag" style="background:${colMap[x.c][0]};color:${colMap[x.c][2]||'white'}">${x.t}</div>`).join('');
             });
         }
     }
