@@ -13,15 +13,17 @@
         .nav-buttons { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 14px; }
         
-        .calendar-strip { display: flex; overflow-x: auto; padding: 10px; background: white; border-bottom: 1px solid #ddd; gap: 8px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .day-item { min-width: 50px; height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; transition: 0.3s; }
-        .day-item.active { background: var(--p) !important; color: white !important; transform: scale(1.1); }
+        #monthPicker { background: white; border: none; padding: 8px; border-radius: 5px; font-weight: bold; color: var(--p); font-size: 16px; }
+
+        .calendar-strip { display: flex; overflow-x: auto; padding: 10px; background: white; border-bottom: 1px solid #ddd; gap: 8px; scroll-behavior: smooth; }
+        .day-item { min-width: 50px; height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; }
+        .day-item.active { background: var(--p) !important; color: white !important; transform: scale(1.05); }
         
         .content { padding: 10px; padding-bottom: 80px; }
         .slot { background: white; margin-bottom: 10px; padding: 10px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 8px solid #ddd; }
         .slot-main { display: flex; align-items: flex-start; gap: 8px; }
         .ora-input { width: 65px; border: none; font-weight: bold; color: var(--p); font-size: 1.1rem; background: #f0f0f0; padding: 5px; border-radius: 4px; text-align: center; }
-        .nota-input { flex: 1; border: none; font-size: 16px; outline: none; padding: 8px; background: #f8f9fa; border-radius: 6px; resize: none; overflow: hidden; min-height: 35px; line-height: 1.4; }
+        .nota-input { flex: 1; border: none; font-size: 16px; outline: none; padding: 8px; background: #f8f9fa; border-radius: 6px; resize: none; overflow: hidden; min-height: 35px; }
         
         .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
         .dots { display: flex; gap: 8px; }
@@ -30,11 +32,9 @@
         .notif-btn.active { filter: grayscale(0); }
 
         #vistaMese { display: none; padding: 5px; }
-        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background:#ccc; }
-        .cell-mese { background:white; min-height:105px; padding:4px; font-size:11px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid #ddd; }
-        
-        /* CESTINO INGRANDITO */
-        .btn-clean-mese { position: absolute; top: 0; right: 0; background: #ff4444; border: none; color: white; border-bottom-left-radius: 10px; font-size: 18px; width: 35px; height: 35px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: -1px 1px 4px rgba(0,0,0,0.2); }
+        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background:#ccc; border: 1px solid #ccc; }
+        .cell-mese { background:white; min-height:105px; padding:4px; font-size:11px; cursor: pointer; position: relative; overflow: hidden; }
+        .btn-clean-mese { position: absolute; top: 0; right: 0; background: #ff4444; border: none; color: white; border-bottom-left-radius: 10px; font-size: 20px; width: 38px; height: 38px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; z-index: 3000; }
         .tool-btn { width: 60px; height: 60px; border-radius: 50%; border: none; color: white; font-size: 35px; background: #4caf50; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
@@ -63,7 +63,7 @@
 </div>
 
 <script>
-    // --- INSERISCI I TUOI DATI FIREBASE QUI ---
+    // --- INSERISCI I TUOI DATI FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSy...", 
         authDomain: "tuo-progetto.firebaseapp.com",
@@ -85,6 +85,7 @@
         const p = document.getElementById('monthPicker');
         const oraLocale = new Date();
         if (!p.value) p.value = oraLocale.getFullYear() + "-" + String(oraLocale.getMonth() + 1).padStart(2, '0');
+        
         const [y, m] = p.value.split('-').map(Number);
         const strip = document.getElementById('calendarStrip'); strip.innerHTML = "";
         const tot = new Date(y, m, 0).getDate();
@@ -97,7 +98,11 @@
             el.onclick = () => selectDay(ds);
             strip.appendChild(el);
         }
-        selectDay(oraLocale.toISOString().split('T')[0]);
+
+        // Se siamo nel mese corrente, seleziona oggi, altrimenti il primo del mese
+        const oggiStr = oraLocale.toISOString().split('T')[0];
+        const visualizzatoOggi = oggiStr.startsWith(p.value);
+        selectDay(visualizzatoOggi ? oggiStr : `${y}-${String(m).padStart(2,'0')}-01`);
         renderMese(y, m);
     }
 
@@ -118,24 +123,19 @@
             const grid = document.getElementById('gridOraria');
             grid.innerHTML = "";
             
-            // LOGICA ANTI-DUPLICATI: Unifica per ORARIO
             let mappaUnificata = {};
-            
-            // 1. Carica ore base
             oreBase.forEach(o => mappaUnificata[o] = {h:o, t:"", c:"def", n:false, id:"base_"+o.replace(/:/g,"_")});
-            
-            // 2. Sovrascrivi con dati reali del DB (se esistono)
             Object.keys(dati).forEach(key => {
                 const d = dati[key];
                 if(d.h) mappaUnificata[d.h] = {...d, id: key};
             });
 
             const listaOrdinata = Object.values(mappaUnificata).sort((a,b) => a.h.localeCompare(b.h));
-            let primoIdPieno = null;
+            let idPerScroll = null;
 
             listaOrdinata.forEach((v) => {
                 const id = v.id;
-                if(!primoIdPieno && (v.t || v.c !== "def")) primoIdPieno = "cont-" + id;
+                if(!idPerScroll && (v.t || v.c !== "def")) idPerScroll = "cont-" + id;
 
                 const c = colMap[v.c] || colMap.def;
                 grid.innerHTML += `
@@ -157,17 +157,21 @@
                 setTimeout(() => { const ta = document.getElementById('t-'+id); if(ta) autoH(ta); }, 50);
             });
 
-            // SCROLL DECISO AL PRIMO IMPEGNO
-            if(primoIdPieno) {
-                setTimeout(() => {
-                    const el = document.getElementById(primoIdPieno);
-                    if(el) {
-                        const topPos = el.getBoundingClientRect().top + window.pageYOffset - 120;
-                        window.scrollTo({ top: topPos, behavior: 'smooth' });
-                    }
-                }, 400); // Ritardo aumentato per stabilità
-            }
+            if(idPerScroll) eseguiScrollDeciso(idPerScroll);
         });
+    }
+
+    function eseguiScrollDeciso(id) {
+        let tentativi = 0;
+        const intervallo = setInterval(() => {
+            const el = document.getElementById(id);
+            if(el) {
+                const topPos = el.getBoundingClientRect().top + window.pageYOffset - 150;
+                window.scrollTo({ top: topPos, behavior: 'smooth' });
+                tentativi++;
+            }
+            if(tentativi > 3) clearInterval(intervallo);
+        }, 300);
     }
 
     function autoH(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
