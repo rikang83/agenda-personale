@@ -15,15 +15,17 @@
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
         #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; }
 
-        /* STRISCIA GIORNI - AGGIORNATA */
+        /* STRISCIA GIORNI */
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .day-item { min-width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; transition: all 0.2s; }
+        .day-item { min-width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; }
         .day-item b { font-size: 1.3rem; }
-        .day-item span { font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; }
-        
-        /* Quadrato Rosso per Festivi */
+        .day-item span { font-size: 0.7rem; text-transform: uppercase; }
         .day-item.holiday { background: var(--festivo); color: white; border-color: var(--festivo); }
-        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.1); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border-color: var(--r); }
+        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.1); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        /* TITOLO GIORNATA */
+        .day-title-container { padding: 10px; background: #fff; margin-bottom: 10px; border-bottom: 2px solid #eee; }
+        .day-title-input { width: 100%; border: 2px dashed #ccc; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; color: var(--p); box-sizing: border-box; text-align: center; background: #fffbe6; }
 
         .content { padding: 10px; padding-bottom: 100px; }
         .slot { background: white; margin-bottom: 12px; padding: 12px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 10px solid #ddd; }
@@ -35,17 +37,20 @@
         .dots { display: flex; gap: 8px; }
         .dot { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; cursor: pointer; border: none; }
 
+        /* MODALE */
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; }
         .modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         .btn-action { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
 
+        /* MESE */
         #vistaMese { display: none; padding: 8px; }
         .header-mese { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 12px; padding-bottom: 5px; }
         .header-mese div.holiday { color: var(--festivo); }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #ddd; }
-        .cell-mese { background: white; min-height: 90px; padding: 4px; cursor: pointer; position: relative; }
+        .cell-mese { background: white; min-height: 95px; padding: 4px; cursor: pointer; overflow: hidden; }
         .cell-mese.holiday b { color: var(--festivo); }
+        .mese-title-tag { background: #fffbe6; color: #856404; font-size: 8px; font-weight: 900; border: 1px solid #ffeeba; padding: 1px; margin-bottom: 2px; text-transform: uppercase; border-radius: 2px; }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; z-index: 4000; }
         .tool-btn { width: 60px; height: 60px; border-radius: 50%; border: none; color: white; font-size: 35px; background: var(--a); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
@@ -55,9 +60,9 @@
 
 <div id="modalAdd">
     <div class="modal-content">
-        <h3>Gestione Appuntamenti</h3>
+        <h3>Nuovo Appuntamento</h3>
         <input type="time" id="newOraInizio" value="09:00"> a <input type="time" id="newOraFine" value="10:00">
-        <textarea id="newTesto" rows="2" style="width:100%; margin-top:10px" placeholder="Scrivi qui..."></textarea>
+        <textarea id="newTesto" rows="2" style="width:100%; margin-top:10px" placeholder="Note..."></textarea>
         <div class="modal-btns">
             <button class="btn-action" style="background:var(--a); color:white" onclick="salvaDalModal('add')">RIPETI SETTIMANALE</button>
             <button class="btn-action" style="background:var(--r); color:white" onclick="salvaDalModal('single')">SOLO OGGI</button>
@@ -79,13 +84,14 @@
 
 <div id="vistaGiorno">
     <div class="calendar-strip" id="calendarStrip"></div>
+    <div class="day-title-container">
+        <input type="text" id="dayTitleInput" class="day-title-input" placeholder="TITOLO GIORNATA (es. Ferie, Turno Mattina...)" onblur="salvaTitolo(this.value)">
+    </div>
     <div class="content" id="gridOraria"></div>
 </div>
 
 <div id="vistaMese">
-    <div class="header-mese">
-        <div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div><div>Ven</div><div>Sab</div><div class="holiday">Dom</div>
-    </div>
+    <div class="header-mese"><div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div><div>Ven</div><div>Sab</div><div class="holiday">Dom</div></div>
     <div class="grid-mese" id="gridMese"></div>
 </div>
 
@@ -124,7 +130,6 @@
         const [y, m] = mp.value.split('-').map(Number);
         const strip = document.getElementById('calendarStrip'); strip.innerHTML = "";
         const lastDay = new Date(y, m, 0).getDate();
-
         for (let i = 1; i <= lastDay; i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const hClass = isHoliday(ds) ? "holiday" : "";
@@ -133,8 +138,6 @@
             el.onclick = () => selectDay(ds, false);
             strip.appendChild(el);
         }
-        
-        // Seleziona oggi o il primo del mese
         let oggi = new Date();
         let oggiStr = `${oggi.getFullYear()}-${String(oggi.getMonth()+1).padStart(2,'0')}-${String(oggi.getDate()).padStart(2,'0')}`;
         selectDay(selectedDate || (oggi.getMonth()+1 === m ? oggiStr : `${y}-${String(m).padStart(2,'0')}-01`), false);
@@ -147,19 +150,22 @@
         const activeItem = document.getElementById("day-"+dStr);
         if(activeItem) {
             activeItem.classList.add('active');
-            // SCROLL CENTRATO:
             const container = document.getElementById('calendarStrip');
-            const offset = activeItem.offsetLeft - (container.offsetWidth / 2) + (activeItem.offsetWidth / 2);
-            container.scrollTo({ left: offset, behavior: 'smooth' });
+            container.scrollTo({ left: activeItem.offsetLeft - (container.offsetWidth / 2) + (activeItem.offsetWidth / 2), behavior: 'smooth' });
         }
         
+        // Carica Titolo Giornata
+        db.ref('titoli/' + dStr).on('value', snap => {
+            document.getElementById('dayTitleInput').value = snap.val() || "";
+        });
+
+        // Carica Orari
         db.ref('agenda/' + dStr).on('value', snap => {
             const dati = snap.val() || {};
             const grid = document.getElementById('gridOraria'); grid.innerHTML = "";
             let mappa = {};
             oreBase.forEach(o => mappa[o] = {h:o, t:"", c:"def", id:"base_"+o.replace(/:/g,"_")});
             Object.keys(dati).forEach(k => { mappa[dati[k].h || k] = {...dati[k], id: k}; });
-
             Object.values(mappa).sort((a,b)=>String(a.h).localeCompare(String(b.h))).forEach(v => {
                 const c = colMap[v.c] || colMap.def;
                 grid.innerHTML += `
@@ -182,6 +188,8 @@
         });
     }
 
+    function salvaTitolo(val) { db.ref('titoli/' + selectedDate).set(val); }
+
     function salva(id, ora, testo, colore) {
         const ref = db.ref('agenda/'+selectedDate+'/'+id);
         ref.once('value').then(s => {
@@ -193,15 +201,23 @@
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
         const firstDay = new Date(y, m-1, 1).getDay();
-        const shift = firstDay === 0 ? 6 : firstDay - 1; 
+        const shift = (firstDay === 0 ? 6 : firstDay - 1); 
         for(let s=0; s<shift; s++) gm.innerHTML += `<div class="cell-mese cell-empty"></div>`;
-        const daysInMonth = new Date(y, m, 0).getDate();
-        for (let i = 1; i <= daysInMonth; i++) {
+        
+        for (let i = 1; i <= new Date(y, m, 0).getDate(); i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const cell = document.createElement('div'); cell.className = `cell-mese ${isHoliday(ds) ? "holiday" : ""}`;
-            cell.innerHTML = `<b>${i}</b><div id="m-${ds}"></div>`;
+            cell.innerHTML = `<b>${i}</b><div id="title-m-${ds}"></div><div id="m-${ds}"></div>`;
             cell.onclick = () => { switchView('giorno'); selectDay(ds, true); };
             gm.appendChild(cell);
+            
+            // Listener per Titolo nel Mese
+            db.ref('titoli/' + ds).on('value', s => {
+                const divT = document.getElementById("title-m-"+ds); if(!divT) return;
+                divT.innerHTML = s.val() ? `<div class="mese-title-tag">${s.val().substring(0,12)}</div>` : "";
+            });
+
+            // Listener per Appuntamenti nel Mese
             db.ref('agenda/'+ds).on('value', s => {
                 const d = s.val() || {};
                 const div = document.getElementById("m-"+ds); if(!div) return;
@@ -236,7 +252,7 @@
 
     function cancellaInBlocco() {
         const testo = document.getElementById('newTesto').value;
-        if(!testo || testo.length < 3) return alert("Inserisci testo valido");
+        if(!testo || testo.length < 3) return alert("Testo corto");
         db.ref('agenda').once('value', snap => {
             const tutti = snap.val();
             Object.keys(tutti).forEach(g => {
@@ -248,11 +264,11 @@
         });
     }
 
-    function ripristinaBase() { if(confirm("Ripristinare orari?")) { const obj = {}; oreBase.forEach(o => { obj["base_"+o.replace(/:/g,"_")] = {h:o, t:"", c:"def"}; }); db.ref('agenda/'+selectedDate).set(obj); } }
+    function ripristinaBase() { if(confirm("Reset orari?")) { const obj = {}; oreBase.forEach(o => { obj["base_"+o.replace(/:/g,"_")] = {h:o, t:"", c:"def"}; }); db.ref('agenda/'+selectedDate).set(obj); } }
     function openModal() { document.getElementById('modalAdd').style.display='flex'; }
     function closeModal() { document.getElementById('modalAdd').style.display='none'; }
     function elimina(id) { if(confirm("Eliminare?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
-    function resetOrari() { if(confirm("Svuotare giorno?")) db.ref('agenda/'+selectedDate).remove(); }
+    function resetOrari() { if(confirm("Svuotare giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
     window.onload = initCalendar;
 </script>
 </body>
