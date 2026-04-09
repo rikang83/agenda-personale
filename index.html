@@ -56,15 +56,15 @@
 
 <script>
     // --- INSERISCI QUI I TUOI DATI FIREBASE ---
-    const firebaseConfig = {
-        apiKey: "TUO_VALORE",
-        authDomain: "TUO_VALORE",
-        databaseURL: "TUO_VALORE",
-        projectId: "TUO_VALORE",
-        storageBucket: "TUO_VALORE",
-        messagingSenderId: "TUO_VALORE",
-        appId: "TUO_VALORE"
-    };
+const firebaseConfig = {
+    apiKey: "AIzaSy...",
+    authDomain: "tuo-progetto.firebaseapp.com",
+    databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/", // <--- AGGIUNGI QUESTA RIGA
+    projectId: "tuo-progetto",
+    storageBucket: "tuo-progetto.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
+  };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
