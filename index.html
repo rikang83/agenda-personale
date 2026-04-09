@@ -20,22 +20,24 @@
         .content { padding: 10px; padding-bottom: 80px; }
         .slot { background: white; margin-bottom: 10px; padding: 10px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 8px solid #ddd; }
         .slot-main { display: flex; align-items: flex-start; gap: 8px; }
-        .ora-input { width: 60px; border: none; font-weight: bold; color: var(--p); font-size: 1rem; background: #f0f0f0; padding: 5px; border-radius: 4px; text-align: center; }
-        .nota-input { flex: 1; border: none; font-size: 16px; outline: none; padding: 8px; background: #f8f9fa; border-radius: 6px; resize: none; overflow: hidden; min-height: 30px; line-height: 1.4; }
+        .ora-input { width: 65px; border: none; font-weight: bold; color: var(--p); font-size: 1.1rem; background: #f0f0f0; padding: 5px; border-radius: 4px; text-align: center; }
+        .nota-input { flex: 1; border: none; font-size: 16px; outline: none; padding: 8px; background: #f8f9fa; border-radius: 6px; resize: none; overflow: hidden; min-height: 35px; line-height: 1.4; }
         
         .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
-        .dots { display: flex; gap: 6px; }
-        .dot { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
-        .notif-btn { font-size: 22px; cursor: pointer; filter: grayscale(1); }
+        .dots { display: flex; gap: 8px; }
+        .dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
+        .notif-btn { font-size: 24px; cursor: pointer; filter: grayscale(1); }
         .notif-btn.active { filter: grayscale(0); }
 
         #vistaMese { display: none; padding: 5px; }
-        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background:#ccc; border: 1px solid #ccc; }
-        .cell-mese { background:white; min-height:95px; padding:4px; font-size:10px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid #eee; }
-        .btn-clean-mese { position: absolute; top: 2px; right: 2px; background: #ff4444; border: none; color: white; border-radius: 4px; font-size: 10px; padding: 3px 6px; cursor: pointer; z-index: 10; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background:#ccc; }
+        .cell-mese { background:white; min-height:105px; padding:4px; font-size:11px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid #ddd; }
+        
+        /* CESTINO INGRANDITO */
+        .btn-clean-mese { position: absolute; top: 0; right: 0; background: #ff4444; border: none; color: white; border-bottom-left-radius: 10px; font-size: 18px; width: 35px; height: 35px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: -1px 1px 4px rgba(0,0,0,0.2); }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; z-index: 3000; }
-        .tool-btn { width: 55px; height: 55px; border-radius: 50%; border: none; color: white; font-size: 30px; background: #4caf50; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .tool-btn { width: 60px; height: 60px; border-radius: 50%; border: none; color: white; font-size: 35px; background: #4caf50; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
     </style>
 </head>
 <body>
@@ -61,7 +63,7 @@
 </div>
 
 <script>
-    // --- CONFIGURAZIONE FIREBASE ---
+    // --- INSERISCI I TUOI DATI FIREBASE QUI ---
     const firebaseConfig = {
         apiKey: "AIzaSy...", 
         authDomain: "tuo-progetto.firebaseapp.com",
@@ -84,23 +86,18 @@
         const oraLocale = new Date();
         if (!p.value) p.value = oraLocale.getFullYear() + "-" + String(oraLocale.getMonth() + 1).padStart(2, '0');
         const [y, m] = p.value.split('-').map(Number);
-        
-        const strip = document.getElementById('calendarStrip');
-        strip.innerHTML = "";
+        const strip = document.getElementById('calendarStrip'); strip.innerHTML = "";
         const tot = new Date(y, m, 0).getDate();
         
         for (let i = 1; i <= tot; i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const el = document.createElement('div');
-            el.className = `day-item`;
-            el.id = "day-"+ds;
+            el.className = `day-item`; el.id = "day-"+ds;
             el.innerHTML = `<b>${i}</b>`;
             el.onclick = () => selectDay(ds);
             strip.appendChild(el);
         }
-        
-        const oggiStr = oraLocale.toISOString().split('T')[0];
-        selectDay(oggiStr);
+        selectDay(oraLocale.toISOString().split('T')[0]);
         renderMese(y, m);
     }
 
@@ -121,15 +118,23 @@
             const grid = document.getElementById('gridOraria');
             grid.innerHTML = "";
             
-            let righe = {};
-            oreBase.forEach(o => righe["base_"+o.replace(/:/g,"_")] = {h:o, t:"", c:"def", n:false});
-            Object.keys(dati).forEach(key => { righe[key] = dati[key]; });
+            // LOGICA ANTI-DUPLICATI: Unifica per ORARIO
+            let mappaUnificata = {};
+            
+            // 1. Carica ore base
+            oreBase.forEach(o => mappaUnificata[o] = {h:o, t:"", c:"def", n:false, id:"base_"+o.replace(/:/g,"_")});
+            
+            // 2. Sovrascrivi con dati reali del DB (se esistono)
+            Object.keys(dati).forEach(key => {
+                const d = dati[key];
+                if(d.h) mappaUnificata[d.h] = {...d, id: key};
+            });
 
-            const listaOrdinata = Object.entries(righe).sort((a,b) => (a[1].h || "").localeCompare(b[1].h || ""));
-
+            const listaOrdinata = Object.values(mappaUnificata).sort((a,b) => a.h.localeCompare(b.h));
             let primoIdPieno = null;
 
-            listaOrdinata.forEach(([id, v]) => {
+            listaOrdinata.forEach((v) => {
+                const id = v.id;
                 if(!primoIdPieno && (v.t || v.c !== "def")) primoIdPieno = "cont-" + id;
 
                 const c = colMap[v.c] || colMap.def;
@@ -152,12 +157,15 @@
                 setTimeout(() => { const ta = document.getElementById('t-'+id); if(ta) autoH(ta); }, 50);
             });
 
-            // SCROLL AUTOMATICO AL PRIMO IMPEGNO
+            // SCROLL DECISO AL PRIMO IMPEGNO
             if(primoIdPieno) {
                 setTimeout(() => {
                     const el = document.getElementById(primoIdPieno);
-                    if(el) window.scrollTo({ top: el.offsetTop - 150, behavior: 'smooth' });
-                }, 300);
+                    if(el) {
+                        const topPos = el.getBoundingClientRect().top + window.pageYOffset - 120;
+                        window.scrollTo({ top: topPos, behavior: 'smooth' });
+                    }
+                }, 400); // Ritardo aumentato per stabilità
             }
         });
     }
@@ -186,7 +194,7 @@
     }
 
     function pulisciGiorno(dStr) {
-        if(confirm("Cancellare tutto il " + dStr + "?")) db.ref('agenda/' + dStr).remove();
+        if(confirm("Cancellare tutto il giorno " + dStr + "?")) db.ref('agenda/' + dStr).remove();
     }
 
     function aggiungiRigaLibera() {
@@ -214,7 +222,7 @@
             db.ref('agenda/'+ds).on('value', s => {
                 const d = s.val() || {};
                 const div = document.getElementById("m-"+ds); if(!div) return;
-                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div style="background:${colMap[x.c][0]};color:white;margin-bottom:1px;padding:2px;font-size:8px;border-radius:2px">${x.t.substring(0,8)}</div>`).join('');
+                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div style="background:${colMap[x.c][0]};color:white;margin-bottom:1px;padding:2px;font-size:9px;border-radius:2px">${x.t.substring(0,12)}</div>`).join('');
             });
         }
     }
