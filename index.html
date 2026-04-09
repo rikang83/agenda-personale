@@ -10,37 +10,41 @@
         :root { --bg: #f0f2f5; --p: #1a237e; --r: #2196f3; --a: #4caf50; --d: #ff9800; --v: #ffeb3b; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
         
+        /* HEADER */
         .header { background: var(--p); color: white; padding: 15px 10px; text-align: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
         .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
-        
         #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; cursor: pointer; }
 
-        .calendar-strip { display: flex; overflow-x: auto; padding: 12px; background: white; border-bottom: 1px solid #ddd; gap: 10px; scroll-behavior: smooth; }
+        /* GIORNI */
+        .calendar-strip { display: flex; overflow-x: auto; padding: 12px; background: white; border-bottom: 1px solid #ddd; gap: 10px; }
         .day-item { min-width: 55px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; }
-        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); }
         
+        /* SLOT */
         .content { padding: 10px; padding-bottom: 100px; }
         .slot { background: white; margin-bottom: 12px; padding: 12px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 10px solid #ddd; }
         .slot-main { display: flex; align-items: flex-start; gap: 10px; }
         .ora-input { width: 100px; border: none; font-weight: bold; color: var(--p); font-size: 0.95rem; background: #f0f4f8; padding: 8px; border-radius: 6px; text-align: center; }
         .nota-input { flex: 1; border: none; font-size: 16px; outline: none; padding: 10px; background: #f8f9fa; border-radius: 8px; resize: none; min-height: 45px; }
 
+        /* TONDINI */
         .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; border-top: 1px solid #eee; padding-top: 10px; }
         .dots { display: flex; gap: 10px; }
-        .dot { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
+        .dot { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; font-weight: bold; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 5000; align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .time-range { display: flex; gap: 10px; align-items: center; }
+        /* MODALE POPUP */
+        #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
         .btn-save { flex: 1; background: var(--a); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; }
         .btn-cancel { flex: 1; background: #999; color: white; border: none; padding: 12px; border-radius: 8px; }
 
+        /* MESE */
         #vistaMese { display: none; padding: 8px; }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #ddd; }
         .cell-mese { background: white; min-height: 110px; padding: 5px; position: relative; cursor: pointer; border-radius: 4px; }
-        .btn-clean-mese { position: absolute; top: 0; right: 0; background: #ff4444; color: white; border: none; width: 35px; height: 35px; border-bottom-left-radius: 12px; font-size: 20px; }
+        .btn-clean-mese { position: absolute; top: 0; right: 0; background: #ff4444; color: white; border: none; width: 40px; height: 40px; border-bottom-left-radius: 12px; font-size: 22px; z-index: 5; }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; z-index: 4000; }
         .tool-btn { width: 65px; height: 65px; border-radius: 50%; border: none; color: white; font-size: 40px; background: var(--a); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
@@ -52,22 +56,20 @@
     <div class="modal-content">
         <h3>Nuovo Appuntamento</h3>
         <div style="margin-bottom:15px">
-            <label style="display:block; font-weight:bold; margin-bottom:5px">Fascia Oraria</label>
-            <div class="time-range">
-                <input type="time" id="newOraInizio" value="09:00" style="padding:10px; border-radius:8px; border:1px solid #ccc">
-                <span>al</span>
-                <input type="time" id="newOraFine" value="09:30" style="padding:10px; border-radius:8px; border:1px solid #ccc">
-            </div>
+            <label>Dalle:</label>
+            <input type="time" id="newOraInizio" value="09:00" style="padding:10px; width:100px">
+            <label>Alle:</label>
+            <input type="time" id="newOraFine" value="09:30" style="padding:10px; width:100px">
         </div>
         <div style="margin-bottom:15px">
-            <label style="display:block; font-weight:bold; margin-bottom:5px">Nota / Paziente</label>
-            <textarea id="newTesto" rows="3" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box"></textarea>
+            <label>Nota / Paziente:</label>
+            <textarea id="newTesto" rows="3" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px"></textarea>
         </div>
         <div style="margin-bottom:15px">
-            <label style="display:block; font-weight:bold; margin-bottom:5px">Ripetizione</label>
-            <select id="newRepeat" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc">
-                <option value="no">Solo oggi</option>
-                <option value="week">Ogni settimana (2026)</option>
+            <label>Ripeti ogni settimana?</label>
+            <select id="newRepeat" style="width:100%; padding:10px">
+                <option value="no">No, solo oggi</option>
+                <option value="week">Sì, per tutto il 2026</option>
             </select>
         </div>
         <div class="modal-btns">
@@ -99,7 +101,7 @@
 </div>
 
 <script>
-    // --- FIREBASE ---
+    // --- FIREBASE CONFIG (Sostituisci con i tuoi dati) ---
     const firebaseConfig = {
         apiKey: "AIzaSy...", 
         authDomain: "tuo-progetto.firebaseapp.com",
@@ -111,10 +113,12 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    
     let selectedDate = "";
     const oreStandard = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#ffeb3b','V','#333'], def:['#ddd',''] };
 
+    // Popola mesi
     const mp = document.getElementById('monthPicker');
     const mNames = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
     for(let i=0; i<12; i++) {
@@ -131,7 +135,7 @@
             const el = document.createElement('div');
             el.className = 'day-item'; el.id = "day-"+ds;
             el.innerHTML = `<b>${i}</b>`;
-            el.onclick = () => selectDay(ds, false); // FALSE: non scrolla se clicchi sulla barra giorni
+            el.onclick = () => selectDay(ds, false);
             strip.appendChild(el);
         }
         selectDay(selectedDate || `${y}-${String(m).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`, false);
@@ -153,25 +157,30 @@
             grid.innerHTML = "";
             
             let mappa = {};
+            // Mappa base
             oreStandard.forEach(o => mappa[o] = {h:o, t:"", c:"def", id:"base_"+o.replace(/:/g,"_")});
-            Object.keys(dati).forEach(key => { mappa[dati[key].h || key] = {...dati[key], id: key}; });
+            // Mappa dati DB
+            Object.keys(dati).forEach(key => {
+                const item = dati[key];
+                mappa[item.h || key] = {...item, id: key};
+            });
 
-            const lista = Object.values(mappa).sort((a,b) => a.h.localeCompare(b.h));
-            let primoImpegnoId = null;
+            const lista = Object.values(mappa).sort((a,b) => String(a.h).localeCompare(String(b.h)));
+            let primoId = null;
 
             lista.forEach(v => {
-                if(!primoImpegnoId && (v.t || v.c !== 'def')) primoImpegnoId = "slot-" + v.id;
+                if(!primoId && (v.t || v.c !== 'def')) primoId = "slot-" + v.id;
                 const c = colMap[v.c] || colMap.def;
                 grid.innerHTML += `
                     <div class="slot" id="slot-${v.id}" style="border-left-color:${c[0]}">
                         <div class="slot-main">
-                            <input type="text" class="ora-input" value="${v.h}" onblur="veloceSalva('${v.id}', this.value, null, null)">
-                            <textarea class="nota-input" onblur="veloceSalva('${v.id}', null, this.value, null)">${v.t}</textarea>
+                            <input type="text" class="ora-input" value="${v.h}" onblur="salvaDiretto('${v.id}', this.value, null, null)">
+                            <textarea class="nota-input" onblur="salvaDiretto('${v.id}', null, this.value, null)">${v.t}</textarea>
                         </div>
                         <div class="actions">
                             <div class="dots">
                                 ${Object.entries(colMap).filter(x=>x[0]!='def').map(([k, val]) => `
-                                    <div class="dot" style="background:${val[0]}; color:${val[2]||'white'}" onclick="veloceSalva('${v.id}', null, null, '${k}')">${val[1]}</div>
+                                    <div class="dot" style="background:${val[0]}; color:${val[2]||'white'}" onclick="salvaDiretto('${v.id}', null, null, '${k}')">${val[1]}</div>
                                 `).join('')}
                                 <div class="dot" style="background:#eee;color:#999" onclick="elimina('${v.id}')">×</div>
                             </div>
@@ -179,33 +188,37 @@
                     </div>`;
             });
 
-            if(doScroll && primoImpegnoId) {
+            if(doScroll && primoId) {
                 setTimeout(() => {
-                    const el = document.getElementById(primoImpegnoId);
+                    const el = document.getElementById(primoId);
                     if(el) window.scrollTo({ top: el.offsetTop - 150, behavior: 'smooth' });
                 }, 400);
             }
         });
     }
 
-    function veloceSalva(id, ora, testo, colore) {
+    function salvaDiretto(id, ora, testo, colore) {
         const ref = db.ref('agenda/'+selectedDate+'/'+id);
         ref.once('value').then(s => {
-            const v = s.val() || {h:"", t:"", c:"def"};
-            const upData = {};
-            if(ora !== null) upData.h = ora;
-            if(testo !== null) upData.t = testo;
-            if(colore !== null) upData.c = colore;
-            ref.update(upData);
+            const d = s.val() || {};
+            const update = {
+                h: ora !== null ? ora : (d.h || ""),
+                t: testo !== null ? testo : (d.t || ""),
+                c: colore !== null ? colore : (d.c || "def")
+            };
+            ref.update(update);
         });
     }
 
     function ripristinaBase() {
-        if(confirm("Ripristinare orari base 09-20?")) {
+        if(confirm("ATTENZIONE: Questo cancellerà ogni nota di oggi e rimetterà gli orari standard 09-20. Procedere?")) {
+            const dataPura = {};
             oreStandard.forEach(o => {
-                let id = "base_"+o.replace(/:/g,"_");
-                db.ref('agenda/'+selectedDate+'/'+id).set({h:o, t:"", c:"def"});
+                const id = "base_"+o.replace(/:/g,"_");
+                dataPura[id] = { h: o, t: "", c: "def" };
             });
+            // Uso .set per sovrascrivere tutto il giorno ed eliminare "fantasmi"
+            db.ref('agenda/'+selectedDate).set(dataPura);
         }
     }
 
@@ -215,22 +228,22 @@
     function salvaDalModal() {
         const h1 = document.getElementById('newOraInizio').value;
         const h2 = document.getElementById('newOraFine').value;
-        const fullOra = `${h1} - ${h2}`;
-        const t = document.getElementById('newTesto').value;
+        const txt = document.getElementById('newTesto').value;
         const rep = document.getElementById('newRepeat').value;
+        const fullH = h1 + " - " + h2;
         const id = "extra_" + Date.now();
 
         if(rep === 'no') {
-            db.ref('agenda/'+selectedDate+'/'+id).set({h:fullOra, t:t, c:'def'});
+            db.ref('agenda/'+selectedDate+'/'+id).set({h:fullH, t:txt, c:'def'});
         } else {
-            const dayOfWeek = new Date(selectedDate).getDay();
-            for(let m=0; m<12; m++) {
+            const dOW = new Date(selectedDate).getDay();
+            for(let m=0; m<12; m++){
                 let days = new Date(2026, m+1, 0).getDate();
-                for(let d=1; d<=days; d++) {
-                    let dIter = new Date(2026, m, d);
-                    if(dIter.getDay() === dayOfWeek) {
+                for(let d=1; d<=days; d++){
+                    let dIt = new Date(2026, m, d);
+                    if(dIt.getDay() === dOW){
                         let ds = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                        db.ref('agenda/'+ds+'/'+id).set({h:fullOra, t:t, c:'def'});
+                        db.ref('agenda/'+ds+'/'+id).set({h:fullH, t:txt, c:'def'});
                     }
                 }
             }
@@ -239,9 +252,9 @@
         document.getElementById('newTesto').value = "";
     }
 
-    function elimina(id) { if(confirm("Eliminare?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
-    function resetOrari() { if(confirm("Svuota tutto oggi?")) db.ref('agenda/'+selectedDate).remove(); }
-    function pulisciGiorno(d) { if(confirm("Svuota "+d+"?")) db.ref('agenda/'+d).remove(); }
+    function elimina(id) { if(confirm("Eliminare questa riga?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
+    function resetOrari() { if(confirm("Svuotare completamente questo giorno?")) db.ref('agenda/'+selectedDate).remove(); }
+    function pulisciGiorno(d) { if(confirm("Cancellare tutto il " + d + "?")) db.ref('agenda/'+d).remove(); }
     
     function switchView(v) { 
         document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none';
@@ -250,11 +263,12 @@
 
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
-        for (let i = 1; i <= new Date(y, m, 0).getDate(); i++) {
+        const tot = new Date(y, m, 0).getDate();
+        for (let i = 1; i <= tot; i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const cell = document.createElement('div'); cell.className = "cell-mese";
             cell.innerHTML = `<b>${i}</b><button class="btn-clean-mese" onclick="event.stopPropagation();pulisciGiorno('${ds}')">🗑</button><div id="m-${ds}"></div>`;
-            cell.onclick = () => { switchView('giorno'); selectDay(ds, true); }; // TRUE: scrolla perché arrivo dal mese
+            cell.onclick = () => { switchView('giorno'); selectDay(ds, true); };
             gm.appendChild(cell);
             db.ref('agenda/'+ds).on('value', s => {
                 const d = s.val() || {};
