@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Master Pro 2026</title>
+    <title>Agenda Master 2026</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -31,9 +31,8 @@
 
         #vistaMese { display: none; padding: 5px; }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background:#ccc; border: 1px solid #ccc; }
-        .cell-mese { background:white; min-height:90px; padding:4px; font-size:10px; cursor: pointer; position: relative; overflow: hidden; }
-        .btn-clean-mese { position: absolute; top: 2px; right: 2px; background: #ffefef; border: none; color: #d32f2f; border-radius: 3px; font-size: 12px; padding: 2px 5px; cursor: pointer; opacity: 0.6; }
-        .btn-clean-mese:hover { opacity: 1; }
+        .cell-mese { background:white; min-height:95px; padding:4px; font-size:10px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid #eee; }
+        .btn-clean-mese { position: absolute; top: 2px; right: 2px; background: #ff4444; border: none; color: white; border-radius: 4px; font-size: 10px; padding: 3px 6px; cursor: pointer; z-index: 10; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; z-index: 3000; }
         .tool-btn { width: 55px; height: 55px; border-radius: 50%; border: none; color: white; font-size: 30px; background: #4caf50; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
@@ -62,7 +61,7 @@
 </div>
 
 <script>
-    // --- CONFIGURAZIONE FIREBASE (Usa i tuoi dati) ---
+    // --- CONFIGURAZIONE FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSy...", 
         authDomain: "tuo-progetto.firebaseapp.com",
@@ -112,7 +111,6 @@
         
         if(target) {
             target.classList.add('active');
-            // SCROLL AL CENTRO:
             const container = document.getElementById('calendarStrip');
             const offset = target.offsetLeft - (container.offsetWidth / 2) + (target.offsetWidth / 2);
             container.scrollTo({ left: offset, behavior: 'smooth' });
@@ -123,22 +121,20 @@
             const grid = document.getElementById('gridOraria');
             grid.innerHTML = "";
             
-            // Crea mappa per unire ore base e dati DB
             let righe = {};
-            // Inserisci base
             oreBase.forEach(o => righe["base_"+o.replace(/:/g,"_")] = {h:o, t:"", c:"def", n:false});
-            // Sovrascrivi o aggiungi con dati DB
-            Object.keys(dati).forEach(key => {
-                righe[key] = dati[key];
-            });
+            Object.keys(dati).forEach(key => { righe[key] = dati[key]; });
 
-            // Ordina per orario
             const listaOrdinata = Object.entries(righe).sort((a,b) => (a[1].h || "").localeCompare(b[1].h || ""));
 
+            let primoIdPieno = null;
+
             listaOrdinata.forEach(([id, v]) => {
+                if(!primoIdPieno && (v.t || v.c !== "def")) primoIdPieno = "cont-" + id;
+
                 const c = colMap[v.c] || colMap.def;
                 grid.innerHTML += `
-                    <div class="slot" style="border-left-color:${c[0]}">
+                    <div class="slot" id="cont-${id}" style="border-left-color:${c[0]}">
                         <div class="slot-main">
                             <input type="text" class="ora-input" id="h-${id}" value="${v.h || ''}" onblur="salva('${id}')">
                             <textarea id="t-${id}" class="nota-input" oninput="autoH(this)" onblur="salva('${id}')" placeholder="...">${v.t || ''}</textarea>
@@ -155,6 +151,14 @@
                     </div>`;
                 setTimeout(() => { const ta = document.getElementById('t-'+id); if(ta) autoH(ta); }, 50);
             });
+
+            // SCROLL AUTOMATICO AL PRIMO IMPEGNO
+            if(primoIdPieno) {
+                setTimeout(() => {
+                    const el = document.getElementById(primoIdPieno);
+                    if(el) window.scrollTo({ top: el.offsetTop - 150, behavior: 'smooth' });
+                }, 300);
+            }
         });
     }
 
@@ -165,7 +169,6 @@
         const ora = document.getElementById('h-'+id).value;
         const nS = document.getElementById('n-'+id).classList.contains('active');
         const ref = db.ref('agenda/'+selectedDate+'/'+id);
-        
         ref.once('value').then(s => {
             const v = s.val() || {};
             ref.update({ t:txt||"", h:ora||"", c:colore||v.c||"def", n:nS });
@@ -173,19 +176,17 @@
     }
 
     function elimina(id) {
-        if(confirm("Eliminare?")) db.ref('agenda/'+selectedDate+'/'+id).remove();
+        if(confirm("Eliminare questa riga?")) db.ref('agenda/'+selectedDate+'/'+id).remove();
     }
 
     function resetOrari() {
-        if(confirm("Svuota orari oggi?")) {
+        if(confirm("Svuota orari di oggi?")) {
             document.querySelectorAll('.ora-input').forEach(i => { i.value = ""; salva(i.id.replace('h-', '')); });
         }
     }
 
     function pulisciGiorno(dStr) {
-        if(confirm("Vuoi cancellare TUTTI gli appuntamenti del " + dStr + "?")) {
-            db.ref('agenda/' + dStr).remove();
-        }
+        if(confirm("Cancellare tutto il " + dStr + "?")) db.ref('agenda/' + dStr).remove();
     }
 
     function aggiungiRigaLibera() {
@@ -198,7 +199,6 @@
     function switchView(v) {
         document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none';
         document.getElementById('vistaMese').style.display = v==='mese'?'block':'none';
-        if(v === 'giorno') selectDay(selectedDate);
     }
 
     function renderMese(y, m) {
@@ -214,7 +214,7 @@
             db.ref('agenda/'+ds).on('value', s => {
                 const d = s.val() || {};
                 const div = document.getElementById("m-"+ds); if(!div) return;
-                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div style="background:${colMap[x.c][0]};color:white;margin-bottom:1px;padding:1px;font-size:8px;border-radius:2px">${x.t.substring(0,8)}</div>`).join('');
+                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div style="background:${colMap[x.c][0]};color:white;margin-bottom:1px;padding:2px;font-size:8px;border-radius:2px">${x.t.substring(0,8)}</div>`).join('');
             });
         }
     }
