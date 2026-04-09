@@ -55,16 +55,16 @@
 </div>
 
 <script>
-    // --- INSERISCI QUI I TUOI DATI FIREBASE ---
-const firebaseConfig = {
-    apiKey: "AIzaSy...",
-    authDomain: "tuo-progetto.firebaseapp.com",
-    databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/", // <--- AGGIUNGI QUESTA RIGA
-    projectId: "tuo-progetto",
-    storageBucket: "tuo-progetto.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
-  };
+    // --- CONFIGURAZIONE FIREBASE ---
+    const firebaseConfig = {
+        apiKey: "AIzaSy...", // Sostituisci i puntini con la tua chiave intera se non l'hai copiata tutta
+        authDomain: "tuo-progetto.firebaseapp.com",
+        databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "tuo-progetto",
+        storageBucket: "tuo-progetto.appspot.com",
+        messagingSenderId: "...",
+        appId: "..."
+    };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -111,32 +111,31 @@ const firebaseConfig = {
             Object.values(dati).forEach(v => {
                 if(v.h && !oreFinali.includes(v.h)) oreFinali.push(v.h);
             });
-            // Ordiniamo gli orari (opzionale, ma utile)
             oreFinali.sort();
 
             oreFinali.forEach((o, index) => {
-                const id = "slot_" + o.replace(/:/g, "_") || "extra_"+index;
-                const v = dati[id] || {t:"", c:"def", h:o, n:false};
+                // Pulizia ID per Firebase
+                const idSafe = o ? o.replace(/:/g, "_") : "extra_"+index;
+                const v = dati[idSafe] || {t:"", c:"def", h:o, n:false};
                 const c = colMap[v.c] || colMap.def;
                 
                 grid.innerHTML += `
-                    <div class="slot" id="cont-${id}" style="border-left-color:${c[0]}">
+                    <div class="slot" id="cont-${idSafe}" style="border-left-color:${c[0]}">
                         <div class="slot-main">
-                            <input type="text" class="ora-input" id="h-${id}" value="${v.h}" onblur="salva('${id}')">
-                            <textarea id="t-${id}" class="nota-input" oninput="autoHeight(this)" onblur="salva('${id}')" placeholder="...">${v.t}</textarea>
-                            <span class="notif-btn ${v.n?'active':''}" id="n-${id}" onclick="toggleNotif('${id}')">🔔</span>
+                            <input type="text" class="ora-input" id="h-${idSafe}" value="${v.h || ''}" onblur="salva('${idSafe}')">
+                            <textarea id="t-${idSafe}" class="nota-input" oninput="autoHeight(this)" onblur="salva('${idSafe}')" placeholder="...">${v.t || ''}</textarea>
+                            <span class="notif-btn ${v.n?'active':''}" id="n-${idSafe}" onclick="toggleNotif('${idSafe}')">🔔</span>
                         </div>
                         <div class="actions">
                             <div class="dots">
                                 ${Object.entries(colMap).filter(x=>x[0]!='def').map(([key, val]) => `
-                                    <div class="dot" style="background:${val[0]}" onclick="salva('${id}','${key}')">${val[1]}</div>
+                                    <div class="dot" style="background:${val[0]}" onclick="salva('${idSafe}','${key}')">${val[1]}</div>
                                 `).join('')}
-                                <div class="dot" style="background:#eee;color:#999" onclick="eliminaRiga('${id}')">×</div>
+                                <div class="dot" style="background:#eee;color:#999" onclick="eliminaRiga('${idSafe}')">×</div>
                             </div>
                         </div>
                     </div>`;
-                // Regola altezza textarea dopo il caricamento
-                setTimeout(() => { const ta = document.getElementById('t-'+id); if(ta) autoHeight(ta); }, 50);
+                setTimeout(() => { const ta = document.getElementById('t-'+idSafe); if(ta) autoHeight(ta); }, 50);
             });
         });
     }
@@ -149,20 +148,19 @@ const firebaseConfig = {
         const nState = document.getElementById('n-'+id).classList.contains('active');
         const d = db.ref('agenda/'+selectedDate+'/'+id);
         
-        if(!txt && !ora && colore === undefined) {
-            d.remove();
-        } else {
-            // Se stiamo cambiando solo il colore manteniamo il resto
-            d.once('value').then(s => {
-                const vecchio = s.val() || {};
+        d.once('value').then(s => {
+            const vecchio = s.val() || {};
+            if(!txt && !ora && colore === undefined && !vecchio.t) {
+                d.remove();
+            } else {
                 d.update({
-                    t: txt,
-                    h: ora,
+                    t: txt || "",
+                    h: ora || "",
                     c: colore || vecchio.c || "def",
-                    n: nState
+                    n: nState || false
                 });
-            });
-        }
+            }
+        });
     }
 
     function eliminaRiga(id) {
@@ -172,7 +170,7 @@ const firebaseConfig = {
     }
 
     function resetOrari() {
-        if(confirm("Svuotare tutti gli orari (colonna sinistra) di oggi?")) {
+        if(confirm("Svuota tutti gli orari di oggi?")) {
             const inputs = document.querySelectorAll('.ora-input');
             inputs.forEach(i => {
                 i.value = "";
@@ -183,8 +181,6 @@ const firebaseConfig = {
 
     function aggiungiRigaLibera() {
         const nuovoId = "extra_" + Date.now();
-        const grid = document.getElementById('gridOraria');
-        // Aggiungiamo temporaneamente nel DB per farla apparire
         db.ref('agenda/'+selectedDate+'/'+nuovoId).set({t:"", h:"", c:"def", n:false});
     }
 
@@ -211,7 +207,7 @@ const firebaseConfig = {
             db.ref('agenda/'+ds).on('value', s => {
                 const d = s.val() || {};
                 const div = document.getElementById("m-"+ds); if(!div) return;
-                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div style="background:${colMap[x.c][0]};color:${colMap[x.c][2]||'white'};margin-bottom:1px;padding:1px;font-size:8px;border-radius:2px">${x.t.substring(0,10)}</div>`).join('');
+                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div style="background:${colMap[x.c][0]};color:white;margin-bottom:1px;padding:1px;font-size:8px;border-radius:2px">${x.t.substring(0,10)}</div>`).join('');
             });
         }
     }
