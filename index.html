@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Coerenza Grafica</title>
+    <title>Agenda 2026 - Fix Sincronizzazione</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -53,7 +53,6 @@
         .btn-del-mese { position: absolute; top: 2px; right: 2px; background: none; border: none; font-size: 12px; cursor: pointer; opacity: 0.3; z-index: 5; }
         .cell-mese:hover .btn-del-mese { opacity: 1; }
 
-        /* Titolo nel mese evidenziato */
         .m-titolo-box { 
             background: var(--evidenza); 
             font-size: 9px; 
@@ -162,8 +161,9 @@
     let datiGiorno = {};
     const orariFissi = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
-
     const festivi2026 = { "01-01":"Capodanno", "01-06":"Epifania", "04-05":"Pasqua", "04-06":"Pasquetta", "04-25":"Liberazione", "05-01":"Festa Lavoro", "06-02":"Festa Rep.", "08-15":"Ferragosto", "11-01":"Ognissanti", "12-08":"Immacolata", "12-25":"Natale", "12-26":"S. Stefano" };
+
+    function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
 
     function initCalendar() {
         const mp = document.getElementById('monthPicker');
@@ -181,11 +181,13 @@
         for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
             const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const festClass = festivi2026[iso.substring(5)] ? 'nat-holiday' : (new Date(iso).getDay()===0 ? 'holiday' : '');
+            
             const ds = document.createElement('div');
             ds.className = `day-item ${festClass}`; ds.id = "st-"+iso;
             ds.innerHTML = `<small>${["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][new Date(iso).getDay()]}</small><br><b>${d}</b>`;
             ds.onclick = () => selezionaGiorno(iso);
             strip.appendChild(ds);
+
             const dc = document.createElement('div');
             dc.className = `cell-mese ${festClass}`;
             dc.innerHTML = `<button class="btn-del-mese" onclick="pulisciTuttoGiorno('${iso}', event)">🗑️</button>
@@ -194,6 +196,7 @@
                 <div id="m-list-${iso}"></div>`;
             dc.onclick = (e) => { if(e.target.tagName !== 'BUTTON') { toggleVista('g'); selezionaGiorno(iso); } };
             corpo.appendChild(dc);
+
             db.ref('titoli/'+iso).on('value', s => { 
                 const el = document.getElementById('m-tit-'+iso); 
                 if(el) { el.innerText = s.val() || ""; el.style.display = s.val() ? "block" : "none"; } 
@@ -209,23 +212,37 @@
         selezionaGiorno(new Date().toISOString().split('T')[0], true);
     }
 
-    function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
+    // FIX: Scollega i listener precedenti prima di attivare quelli nuovi
     function selezionaGiorno(data, scroll = false) {
+        if(giornoCorrente) {
+            db.ref('agenda/'+giornoCorrente).off();
+            db.ref('titoli/'+giornoCorrente).off();
+        }
+        
         giornoCorrente = data;
         document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
         const att = document.getElementById('st-'+data);
         if(att) { att.classList.add('active'); if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"}); }
-        db.ref('titoli/'+data).once('value', s => document.getElementById('titoloGiorno').value = s.val() || "");
-        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
+        
+        db.ref('titoli/'+data).on('value', s => document.getElementById('titoloGiorno').value = s.val() || "");
+        db.ref('agenda/'+data).on('value', s => { 
+            datiGiorno = s.val() || {}; 
+            renderGiorno(); 
+        });
     }
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
-        if (document.activeElement.tagName === "TEXTAREA") return;
+        if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.classList.contains('ora-input')) return;
+        
         let pool = {...datiGiorno};
-        orariFissi.forEach(h => { if(!Object.values(pool).some(v => v.h === h)) pool["h"+h.replace(":","")] = {h: h, t: "", c: "def"}; });
+        orariFissi.forEach(h => { 
+            const id = "h"+h.replace(":","");
+            if(!pool[id]) pool[id] = {h: h, t: "", c: "def"}; 
+        });
+
         let html = "";
         Object.keys(pool).sort((a,b) => cleanH(pool[a].h) - cleanH(pool[b].h)).forEach(id => {
             const item = pool[id];
@@ -244,7 +261,24 @@
         container.innerHTML = html;
     }
 
+    function salva(id, h, t) {
+        const ref = db.ref(`agenda/${giornoCorrente}/${id}`);
+        ref.once('value', s => {
+            const v = s.val() || {};
+            ref.update({ h: h||v.h||"", t: t!==null?t:(v.t||""), c: v.c||'def' });
+        });
+    }
+
+    function cambiaColore(id, c) { db.ref(`agenda/${giornoCorrente}/${id}`).update({c: c}); }
+    function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
+    function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
+    function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
+    function openModal(id) { document.getElementById(id).style.display='flex'; }
+    function closeModal(id) { document.getElementById(id).style.display='none'; }
+    function openRepModal() { document.getElementById('repDataFine').value = giornoCorrente; document.querySelectorAll('.day-check').forEach(cb => cb.checked = false); openModal('repModal'); }
+    function pulisciTesti() { Object.keys(datiGiorno).forEach(id => db.ref(`agenda/${giornoCorrente}/${id}/t`).set("")); closeModal('mainModal'); }
     function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare il giorno ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
+
     function eseguiRipetizione() {
         const testo = document.getElementById('repTesto').value;
         const hInizio = cleanH(document.getElementById('repHInizio').value);
@@ -272,21 +306,6 @@
             alert("Pulizia completata!");
         });
     }
-
-    function salva(id, h, t) {
-        db.ref(`agenda/${giornoCorrente}/${id}`).once('value', s => {
-            const v = s.val() || {};
-            db.ref(`agenda/${giornoCorrente}/${id}`).update({ h: h||v.h, t: t!==null?t:v.t||"", c: v.c||'def' });
-        });
-    }
-    function cambiaColore(id, c) { db.ref(`agenda/${giornoCorrente}/${id}`).update({c: c}); }
-    function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
-    function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
-    function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
-    function openModal(id) { document.getElementById(id).style.display='flex'; }
-    function openRepModal() { document.getElementById('repDataFine').value = giornoCorrente; document.querySelectorAll('.day-check').forEach(cb => cb.checked = false); openModal('repModal'); }
-    function closeModal(id) { document.getElementById(id).style.display='none'; }
-    function pulisciTesti() { Object.keys(datiGiorno).forEach(id => db.ref(`agenda/${giornoCorrente}/${id}/t`).set("")); closeModal('mainModal'); }
 
     window.onload = initCalendar;
 </script>
