@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Versione Stabile</title>
+    <title>Agenda 2026 - Fix Visibilità</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -11,10 +11,9 @@
         body { font-family: sans-serif; margin: 0; background: #f4f4f4; }
         
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
-        .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
+        .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; align-items: center; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
         
-        /* Switch Orari */
         .master-switch { display: flex; align-items: center; gap: 5px; font-size: 11px; border: 1px solid white; padding: 3px 8px; border-radius: 15px; }
         .switch { position: relative; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -23,25 +22,22 @@
         input:checked + .slider { background: var(--a); }
         input:checked + .slider:before { transform: translateX(14px); }
 
-        /* Barra Giorni */
         .calendar-strip { display: flex; overflow-x: auto; padding: 10px; background: white; gap: 5px; border-bottom: 1px solid #ddd; }
         .day-item { min-width: 50px; padding: 8px; border-radius: 8px; border: 1px solid #eee; text-align: center; cursor: pointer; flex-shrink: 0; background: white; }
         .day-item.active { background: var(--r) !important; color: white; }
         .day-item.holiday { background: #ffebee; border-color: var(--festivo); color: var(--festivo); }
 
-        /* Input Giorno */
-        .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; box-sizing: border-box; font-size: 16px; border-bottom: 1px solid #ddd; }
+        .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; box-sizing: border-box; font-size: 16px; border-bottom: 1px solid #ddd; outline: none; }
         .slot { background: white; margin: 5px 10px; padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; border-left: 8px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .ora-input { width: 70px; padding: 6px; border: 1px solid #eee; border-radius: 4px; font-weight: bold; text-align: center; background: #fafafa; }
-        .nota-input { flex: 1; padding: 8px; border: 1px solid #eee; border-radius: 4px; font-size: 14px; min-height: 20px; resize: none; }
+        .nota-input { flex: 1; padding: 8px; border: 1px solid #eee; border-radius: 4px; font-size: 14px; min-height: 20px; resize: none; outline: none; }
 
-        /* Griglia Mese */
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); background: #ddd; gap: 1px; border: 1px solid #ddd; }
         .nome-giorno { background: #eee; padding: 8px 0; text-align: center; font-size: 11px; font-weight: bold; }
-        .cell-mese { background: white; min-height: 80px; padding: 4px; cursor: pointer; font-size: 11px; }
+        .cell-mese { background: white; min-height: 80px; padding: 4px; cursor: pointer; font-size: 11px; overflow: hidden; }
         .cell-mese b { font-size: 13px; }
         .cell-mese.holiday { background: #ffebee; color: var(--festivo); }
-        .item-mese { font-size: 9px; margin-top: 2px; padding: 1px 3px; border-radius: 3px; color: white; white-space: nowrap; overflow: hidden; }
+        .item-mese { font-size: 9px; margin-top: 2px; padding: 1px 3px; border-radius: 3px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
         .modal-content { background:white; padding:20px; border-radius:10px; width:80%; max-width:300px; }
@@ -77,9 +73,9 @@
 
 <div id="modal" onclick="this.style.display='none'">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <h3>Gestione</h3>
-        <button style="width:100%; padding:10px; background:var(--festivo); color:white; border:none; margin-bottom:10px;" onclick="pulisciTesti()">CANCELLA TESTI OGGI</button>
-        <button style="width:100%; padding:10px; background:#333; color:white; border:none;" onclick="pulisciTutto()">RESET TOTALE GIORNO</button>
+        <h3>Gestione Giorno</h3>
+        <button style="width:100%; padding:10px; background:var(--festivo); color:white; border:none; margin-bottom:10px;" onclick="pulisciTesti()">CANCELLA TESTI</button>
+        <button style="width:100%; padding:10px; background:#333; color:white; border:none;" onclick="pulisciTutto()">SVUOTA TUTTO</button>
     </div>
 </div>
 
@@ -115,7 +111,6 @@
             const dataIso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const dom = new Date(dataIso).getDay() === 0;
 
-            // Strip superiore
             const divS = document.createElement('div');
             divS.className = `day-item ${dom?'holiday':''}`;
             divS.id = "st-"+dataIso;
@@ -123,24 +118,25 @@
             divS.onclick = () => selezionaGiorno(dataIso);
             strip.appendChild(divS);
 
-            // Cella mese
             const divC = document.createElement('div');
             divC.className = `cell-mese ${dom?'holiday':''}`;
             divC.innerHTML = `<b>${d}</b><div id="m-tit-${dataIso}" style="color:var(--p); font-weight:bold; font-size:8px;"></div><div id="m-corpo-${dataIso}"></div>`;
             divC.onclick = () => { switchVista('g'); selezionaGiorno(dataIso); };
             corpo.appendChild(divC);
 
-            // Listener Firebase per il mese
             db.ref('titoli/'+dataIso).on('value', snap => {
                 const el = document.getElementById('m-tit-'+dataIso);
                 if(el) el.innerText = snap.val() || "";
             });
             db.ref('agenda/'+dataIso).on('value', snap => {
-                const box = document.getElementById('m-corpo-'+dataIso);
-                if(!box) return; box.innerHTML = "";
+                const box = document.getElementById('m-corpo-${dataIso}');
+                const boxReal = document.getElementById('m-corpo-'+dataIso);
+                if(!boxReal) return; boxReal.innerHTML = "";
                 const data = snap.val() || {};
                 Object.values(data).forEach(item => {
-                    if(item.t) box.innerHTML += `<div class="item-mese" style="background:${colori[item.c]||colori.def}">${item.h}</div>`;
+                    if(item.t && item.t.trim() !== "") {
+                        boxReal.innerHTML += `<div class="item-mese" style="background:${colori[item.c]||colori.def}">${item.h}: ${item.t}</div>`;
+                    }
                 });
             });
         }
@@ -153,34 +149,38 @@
         const att = document.getElementById('st-'+data);
         if(att) {
             att.classList.add('active');
-            if(scroll) att.scrollIntoView({inline:"center", behavior:"smooth"});
+            if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"});
         }
         db.ref('titoli/'+data).once('value', s => document.getElementById('titoloGiorno').value = s.val() || "");
-        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
+        db.ref('agenda/'+data).on('value', s => { 
+            datiGiorno = s.val() || {}; 
+            renderGiorno(); 
+        });
     }
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
-        const mostraTutti = document.getElementById('checkOrari').checked;
-        if(document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
+        const mostraVuoti = document.getElementById('checkOrari').checked;
         
+        // Pulizia e ricostruzione sempre
         container.innerHTML = "";
         orariFissi.forEach((ora, index) => {
             const id = "riga_" + index;
             const item = datiGiorno[id] || { h: ora, t: "", c: "def" };
             
-            // Logica visibilità: se c'è testo si vede sempre. Se è vuoto dipende dallo switch.
-            const visibile = (item.t.trim() !== "" || mostraTutti);
-            
-            if(visibile) {
-                container.innerHTML += `
-                <div class="slot" style="border-left-color: ${colori[item.c] || colori.def}">
-                    <input type="text" class="ora-input" value="${item.h}" onblur="salva('${id}', this.value, null)">
-                    <textarea class="nota-input" onblur="salva('${id}', null, this.value)">${item.t}</textarea>
+            const haTesto = item.t && item.t.trim() !== "";
+            if(haTesto || mostraVuoti) {
+                const div = document.createElement('div');
+                div.className = "slot";
+                div.style.borderLeftColor = colori[item.c] || colori.def;
+                div.innerHTML = `
+                    <input type="text" class="ora-input" value="${item.h}" onchange="salva('${id}', this.value, null)">
+                    <textarea class="nota-input" onchange="salva('${id}', null, this.value)">${item.t}</textarea>
                     <div style="display:flex; flex-direction:column; gap:2px;">
-                        ${['ric','a','d','v'].map(c => `<button onclick="cambiaColore('${id}','${c}')" style="width:15px; height:15px; border:none; border-radius:3px; background:${colori[c]}"></button>`).join('')}
+                        ${['ric','a','d','v'].map(c => `<button onclick="cambiaColore('${id}','${c}')" style="width:18px; height:18px; border:none; border-radius:3px; background:${colori[c]}"></button>`).join('')}
                     </div>
-                </div>`;
+                `;
+                container.appendChild(div);
             }
         });
     }
@@ -189,9 +189,11 @@
         const r = db.ref(`agenda/${giornoCorrente}/${id}`);
         r.once('value', s => {
             const vecchio = s.val() || {};
+            const nuovoH = h !== null ? h : (vecchio.h || orariFissi[id.split('_')[1]]);
+            const nuovoT = t !== null ? t : (vecchio.t || "");
             r.update({
-                h: h !== null ? h : (vecchio.h || orariFissi[id.split('_')[1]]),
-                t: t !== null ? t : (vecchio.t || ""),
+                h: nuovoH,
+                t: nuovoT,
                 c: vecchio.c || 'def'
             });
         });
@@ -215,6 +217,5 @@
 
     window.onload = initCalendar;
 </script>
-
 </body>
 </html>
