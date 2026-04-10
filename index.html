@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Debug Finale</title>
+    <title>Agenda 2026 - Fix Orari</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --festivo-dark: #b71c1c; --evidenza: #fffbe6; }
+        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --evidenza: #fffbe6; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
         .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
@@ -25,7 +25,7 @@
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); background: #ddd; }
         .cell-mese { background: white; min-height: 120px; padding: 4px; position: relative; cursor: pointer; border: 0.5px solid #eee; }
-        .m-titolo-box { background: var(--evidenza); font-size: 9px; font-weight: bold; text-align: center; margin: 4px 0; display: none; }
+        .m-titolo-box { background: var(--evidenza); font-size: 9px; font-weight: bold; text-align: center; margin: 4px 0; border-bottom: 1px solid #ffe082; display: none; }
         .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; white-space: nowrap; }
     </style>
 </head>
@@ -36,8 +36,8 @@
     <div class="nav-buttons">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
-        <button class="nav-btn" style="background:var(--a);" onclick="openModal('repModal')">RIPETI</button>
-        <button class="nav-btn" style="background:var(--festivo);" onclick="openModal('mainModal')">RESET</button>
+        <button class="nav-btn" style="background:var(--a);" onclick="alert('Usa le righe del giorno per scrivere')">INFO</button>
+        <button class="nav-btn" style="background:var(--festivo);" onclick="pulisciTuttoGiorno(giornoCorrente)">RESET OGGI</button>
     </div>
 </div>
 
@@ -60,6 +60,8 @@
     let datiGiorno = {};
     const orariFissi = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
+
+    function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
 
     function initCalendar() {
         const mp = document.getElementById('monthPicker');
@@ -87,12 +89,15 @@
 
             db.ref('titoli/'+iso).on('value', s => { 
                 const el = document.getElementById('m-tit-'+iso); 
-                if(el) { el.innerText = s.val() || ""; el.style.display = s.val() ? "block" : "none"; }
+                const val = s.val() || "";
+                if(el) { el.innerText = val; el.style.display = val.trim() ? "block" : "none"; }
             });
             db.ref('agenda/'+iso).on('value', s => {
                 const box = document.getElementById('m-list-'+iso); if(!box) return;
                 box.innerHTML = ""; const data = s.val() || {};
-                Object.values(data).forEach(v => { if(v.t) box.innerHTML += `<div class="item-mese" style="background:${colMap[v.c]?.[0] || '#ddd'}">${v.t}</div>`; });
+                Object.values(data).sort((a,b)=>cleanH(a.h)-cleanH(b.h)).forEach(v => { 
+                    if(v.t) box.innerHTML += `<div class="item-mese" style="background:${colMap[v.c]?.[0] || '#ddd'}">${v.h || ''} ${v.t}</div>`; 
+                });
             });
         }
         selezionaGiorno(new Date().toISOString().split('T')[0], true);
@@ -103,43 +108,31 @@
         giornoCorrente = data;
         document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
         if(document.getElementById('st-'+data)) document.getElementById('st-'+data).classList.add('active');
-        
         db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
-        
-        // RECUPERO TOTALE: Leggiamo tutto il nodo agenda del giorno
-        db.ref('agenda/'+data).on('value', s => {
-            datiGiorno = s.val() || {};
-            renderGiorno();
-        });
+        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
     }
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
-        if (document.activeElement.tagName === "TEXTAREA") return;
+        if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.classList.contains('ora-input')) return;
         
-        // Creiamo una mappa degli impegni basata sull'orario o sulla chiave
-        let righe = [];
-        
-        // Aggiungiamo gli orari predefiniti
+        let visualizzazione = {};
+        // 1. Carica orari fissi
         orariFissi.forEach(ora => {
             const id = "h" + ora.replace(":","");
-            const esistente = datiGiorno[id] || {};
-            righe.push({ id: id, h: esistente.h || ora, t: esistente.t || "", c: esistente.c || "def" });
+            visualizzazione[id] = { id: id, h: ora, t: "", c: "def", sort: cleanH(ora) };
         });
-
-        // Aggiungiamo eventuali dati "orfani" (vecchi dati con ID diversi)
+        // 2. Sovrascrivi o aggiungi dati dal DB
         Object.keys(datiGiorno).forEach(key => {
-            if (!key.startsWith('h')) { // Se non è un ID nuovo tipo h0900
-                const item = datiGiorno[key];
-                righe.push({ id: key, h: item.h || "??:??", t: item.t || "", c: item.c || "def" });
-            }
+            const item = datiGiorno[key];
+            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sort: cleanH(item.h) };
         });
 
-        container.innerHTML = righe.map(item => `
-            <div class="slot" style="border-left-color:${colMap[item.c][0]}">
+        container.innerHTML = Object.values(visualizzazione).sort((a,b) => a.sort - b.sort).map(item => `
+            <div class="slot" style="border-left-color:${colMap[item.c]?.[0] || '#ddd'}">
                 <div class="slot-main">
-                    <div class="ora-box"><input type="text" class="ora-input" value="${item.h}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}/h').set(this.value)"></div>
-                    <textarea class="nota-input" onblur="db.ref('agenda/${giornoCorrente}/${item.id}/t').set(this.value)">${item.t}</textarea>
+                    <div class="ora-box"><input type="text" class="ora-input" value="${item.h}" onblur="salvaDato('${item.id}', 'h', this.value, '${item.h}')"></div>
+                    <textarea class="nota-input" onblur="salvaDato('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
                 </div>
                 <div class="color-dots">
                     ${Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}/c').set('${k}')">${colMap[k][1]}</div>`).join('')}
@@ -149,7 +142,20 @@
         `).join('');
     }
 
+    function salvaDato(id, campo, valore, oraDefault) {
+        const ref = db.ref(`agenda/${giornoCorrente}/${id}`);
+        let updates = {};
+        updates[campo] = valore;
+        // Se l'orario nel DB non esiste ancora per questo ID, forziamo quello della riga
+        if (!datiGiorno[id] || !datiGiorno[id].h) {
+            updates['h'] = oraDefault;
+            updates['c'] = 'def';
+        }
+        ref.update(updates);
+    }
+
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
+    function pulisciTuttoGiorno(iso) { if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
     function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
     window.onload = initCalendar;
 </script>
