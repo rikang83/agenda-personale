@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026 - Versione Corretta</title>
+    <title>Agenda Pro 2026 - Fix Ordinamento</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -24,22 +24,23 @@
 
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; gap: 8px; border-bottom: 1px solid #ddd; scroll-behavior: smooth; }
         .day-item { min-width: 55px; padding: 10px 5px; border-radius: 10px; border: 1px solid #eee; text-align: center; cursor: pointer; background: white; flex-shrink: 0; }
-        .day-item.active { background: var(--r) !important; color: white !important; border-color: var(--r); }
-        .day-item.holiday { background: var(--festivo) !important; color: white !important; border-color: var(--festivo); }
+        .day-item.active { background: var(--r) !important; color: white !important; }
+        /* FESTIVI: SFONDO ROSSO SCRITTA BIANCA */
+        .day-item.holiday { background: var(--festivo) !important; color: white !important; font-weight: bold; }
 
         .day-title { width: 100%; padding: 15px; border: none; background: #fffbe6; font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; }
-        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 8px; align-items: center; }
         
-        /* Classe per nascondere l'orario ma mantenere lo spazio e la riga */
-        .ora-box { width: 80px; transition: opacity 0.3s; }
-        .ora-hidden { opacity: 0; pointer-events: none; }
+        /* Gestione visibilità orario senza spostare la riga */
+        .ora-container { width: 85px; }
+        .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); transition: opacity 0.3s; }
+        .ora-hidden { opacity: 0 !important; }
         
-        .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; }
         
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
-        .header-mese { background: #eee; text-align: center; font-size: 10px; padding: 5px; font-weight: bold; }
         .cell-mese { background: white; min-height: 90px; padding: 4px; position: relative; cursor: pointer; }
         .cell-mese.holiday { background: var(--festivo); color: white; }
         .cell-mese.holiday b { color: white; }
@@ -98,16 +99,10 @@
             ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m + " 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
         }
-        
         const [y, m] = mp.value.split('-').map(Number);
         const strip = document.getElementById('strip'); strip.innerHTML = "";
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
-        ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"].forEach(g => gm.innerHTML += `<div class="header-mese">${g}</div>`);
         
-        let firstPos = new Date(y, m-1, 1).getDay();
-        if(firstPos === 0) firstPos = 7;
-        for(let s=1; s<firstPos; s++) gm.innerHTML += `<div class="cell-mese" style="background:#f9f9f9"></div>`;
-
         for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const isSun = new Date(ds).getDay() === 0;
@@ -154,23 +149,25 @@
         grid.innerHTML = "";
         
         let visualizza = {...localData};
-        // Carichiamo sempre gli orari base nel pool di dati per mantenere l'ordine
+        // Carichiamo SEMPRE gli orari base
         oreBase.forEach(o => { 
             const id = "b_"+o.replace(":",""); 
             if(!visualizza[id]) visualizza[id] = {h:o, t:"", c:"def"}; 
         });
 
-        Object.keys(visualizza).sort((a,b) => visualizza[a].h.localeCompare(visualizza[b].h)).forEach(id => {
+        // Ordinamento cronologico rigoroso basato sul campo 'h'
+        const sortedKeys = Object.keys(visualizza).sort((a,b) => visualizza[a].h.localeCompare(visualizza[b].h));
+
+        sortedKeys.forEach(id => {
             const v = visualizza[id];
-            // Se lo switch è spento, mostriamo solo le righe che hanno testo (o tutte se vuoi lasciarle vuote per scrivere)
-            // Per tua richiesta: "lasciare le righe vuote per scrivere", quindi mostriamo tutto.
-            
             const c = colMap[v.c] || colMap.def;
+            
             grid.innerHTML += `
             <div class="slot" style="border-left-color:${c[0]}">
                 <div class="slot-main">
-                    <div class="ora-box ${showOrari ? '' : 'ora-hidden'}">
-                        <input type="text" class="ora-input" value="${v.h}" onblur="salva('${id}', this.value, null)">
+                    <div class="ora-container">
+                        <input type="text" class="ora-input ${showOrari ? '' : 'ora-hidden'}" 
+                               value="${v.h}" onblur="salva('${id}', this.value, null)">
                     </div>
                     <textarea class="nota-input" onblur="salva('${id}', null, this.value)">${v.t}</textarea>
                 </div>
@@ -186,10 +183,11 @@
         const ref = db.ref(`agenda/${currentDay}/${id}`);
         ref.once('value', s => {
             const old = s.val() || {h:"", t:"", c:"def"};
-            const nh = h !== null ? h : old.h;
-            const nt = t !== null ? t : old.t;
-            // Salviamo l'orario SEMPRE per bloccare la posizione
-            ref.update({h: nh, t: nt, c: old.c || 'def'});
+            const nuovoH = h !== null ? h : old.h;
+            const nuovoT = t !== null ? t : old.t;
+            // IMPORTANTE: Non permettiamo mai di salvare un orario vuoto se è una riga base
+            const finaleH = (id.startsWith('b_') && nuovoH === "") ? old.h : nuovoH;
+            ref.update({h: finaleH, t: nuovoT, c: old.c || 'def'});
         });
     }
 
