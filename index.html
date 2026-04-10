@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026 - Versione Finale</title>
+    <title>Agenda Pro 2026</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -11,8 +11,18 @@
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
         
         .header { background: var(--p); color: white; padding: 15px 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
-        .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
-        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .nav-buttons { display: flex; justify-content: center; gap: 8px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        
+        /* Master Switch Style */
+        .master-switch { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 11px; font-weight: bold; }
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--a); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
         #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; }
 
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; }
@@ -23,25 +33,25 @@
         .day-title-input { width: 95%; margin: 10px auto; display: block; border: 2px dashed #ccc; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; background: #fffbe6; }
 
         .content { padding: 10px; padding-bottom: 100px; }
-        .slot { background: white; margin-bottom: 12px; padding: 12px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 10px solid #ddd; }
-        .slot-main { display: flex; gap: 10px; }
-        .ora-input { width: 85px; border: none; font-weight: bold; color: var(--p); background: #f0f4f8; padding: 10px; border-radius: 8px; text-align: center; }
+        .slot { background: white; margin-bottom: 12px; padding: 12px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 10px solid #ddd; display: flex; flex-direction: column; }
+        .slot-main { display: flex; gap: 10px; align-items: flex-start; }
+        
+        .ora-input { width: 85px; border: none; font-weight: bold; color: var(--p); background: #f0f4f8; padding: 10px; border-radius: 8px; text-align: center; font-size: 14px; }
         .nota-input { flex: 1; border: none; font-size: 16px; padding: 10px; background: #f8f9fa; border-radius: 8px; resize: none; min-height: 45px; }
 
-        .actions { display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .actions { display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; align-items: center; }
         .dots { display: flex; gap: 8px; }
-        .dot { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-weight: bold; }
+        .dot { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-weight: bold; font-size: 12px; }
         .btn-del { background: #fee2e2; color: #ef4444; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 18px; }
 
         /* VISTA MESE */
         #vistaMese { display: none; padding: 5px; }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
         .cell-mese { background: white; min-height: 120px; padding: 4px; cursor: pointer; position: relative; overflow: hidden; }
-        .cell-mese b { font-size: 14px; }
-        .btn-del-mese { position: absolute; top: 2px; right: 2px; background: #ffeded; border: none; color: red; border-radius: 4px; padding: 2px 5px; font-size: 10px; cursor: pointer; z-index: 5; }
+        .btn-del-mese { position: absolute; top: 2px; right: 2px; background: rgba(255,0,0,0.1); border: none; color: red; border-radius: 4px; padding: 2px 5px; font-size: 12px; z-index: 10; font-weight: bold; }
         .mese-tag { color: white; padding: 2px; font-size: 9px; border-radius: 3px; margin-top: 1px; white-space: nowrap; overflow: hidden; }
 
-        /* MODAL COMPLETO */
+        /* MODAL */
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 20px; }
         .modal-content input, .modal-content textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
@@ -58,7 +68,14 @@
     <div class="nav-buttons">
         <button class="nav-btn" onclick="switchView('giorno')">GIORNO</button>
         <button class="nav-btn" onclick="switchView('mese')">MESE</button>
-        <button class="nav-btn" onclick="ripristinaBase()" style="background: var(--r);">ORE BASE</button>
+        <div class="master-switch">
+            ORARI BASE
+            <label class="switch">
+                <input type="checkbox" id="baseToggle" onchange="renderAgenda()">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <button class="nav-btn" onclick="resetOrari()" style="background: var(--festivo); border:none;">AZZERA</button>
     </div>
 </div>
 
@@ -81,7 +98,6 @@
         </div>
         <textarea id="newTesto" rows="3" placeholder="Note / Nome..."></textarea>
         <button class="btn-block" style="background:var(--a); color:white" onclick="salvaDalModal()">SALVA</button>
-        <button class="btn-block" style="background:#f44336; color:white" onclick="resetOrari()">CANCELLA TUTTO IL GIORNO</button>
         <button class="btn-block" style="background:#eee" onclick="closeModal()">CHIUDI</button>
     </div>
 </div>
@@ -96,6 +112,7 @@
     const db = firebase.database();
     
     let selectedDate = "";
+    let agendaCorrente = {};
     const oreBase = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V','#333'], def:['#ddd',''] };
 
@@ -128,34 +145,57 @@
 
         db.ref('titoli/' + dStr).once('value', s => { document.getElementById('dayTitleInput').value = s.val() || ""; });
 
+        // Ascolto continuo del database per questo giorno
         db.ref('agenda/' + dStr).on('value', snap => {
-            if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
-            const dati = snap.val() || {};
-            const grid = document.getElementById('gridOraria');
-            grid.innerHTML = "";
-            
-            let mappa = {};
-            oreBase.forEach(o => { let id = "b_"+o.replace(":",""); mappa[id] = {h:o, t:"", c:"def", id:id}; });
-            Object.keys(dati).forEach(k => { if(dati[k].h) mappa[k] = {...dati[k], id:k}; });
+            agendaCorrente = snap.val() || {};
+            renderAgenda();
+        });
+    }
 
-            Object.values(mappa).sort((a,b)=>a.h.localeCompare(b.h)).forEach(v => {
-                const c = colMap[v.c] || colMap.def;
-                grid.innerHTML += `
-                <div class="slot" style="border-left-color:${c[0]}">
-                    <div class="slot-main">
-                        <input type="text" class="ora-input" value="${v.h}" onblur="salvaDato('${v.id}', this.value, null)">
-                        <textarea class="nota-input" onblur="salvaDato('${v.id}', null, this.value)">${v.t}</textarea>
-                    </div>
-                    <div class="actions">
-                        <div class="dots">
-                            ${Object.entries(colMap).filter(x=>x[0]!='def').map(([k,val])=>`
-                                <div class="dot" style="background:${val[0]}" onclick="cambiaColore('${v.id}','${k}')">${val[1]}</div>
-                            `).join('')}
-                        </div>
-                        <button class="btn-del" onclick="elimina('${v.id}')">🗑️</button>
-                    </div>
-                </div>`;
+    function renderAgenda() {
+        const grid = document.getElementById('gridOraria');
+        const showBase = document.getElementById('baseToggle').checked;
+        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+
+        grid.innerHTML = "";
+        
+        let visualizza = {};
+
+        // Se lo switch è ON, aggiungiamo i righi base vuoti alla mappa
+        if(showBase) {
+            oreBase.forEach(o => {
+                let id = "b_" + o.replace(":","");
+                visualizza[id] = { h: o, t: "", c: "def" };
             });
+        }
+
+        // Sovrascriviamo o aggiungiamo i dati reali dal database
+        Object.keys(agendaCorrente).forEach(id => {
+            visualizza[id] = agendaCorrente[id];
+        });
+
+        // Ordiniamo e mostriamo
+        Object.keys(visualizza).sort((a,b) => (visualizza[a].h || "").localeCompare(visualizza[b].h || "")).forEach(id => {
+            const v = visualizza[id];
+            // Se lo switch è OFF, non mostriamo i righi base che sono rimasti vuoti
+            if(!showBase && id.startsWith('b_') && !v.t) return;
+
+            const c = colMap[v.c] || colMap.def;
+            grid.innerHTML += `
+            <div class="slot" style="border-left-color:${c[0]}">
+                <div class="slot-main">
+                    <input type="text" class="ora-input" value="${v.h || ''}" onblur="salvaDato('${id}', this.value, null)">
+                    <textarea class="nota-input" onblur="salvaDato('${id}', null, this.value)">${v.t || ''}</textarea>
+                </div>
+                <div class="actions">
+                    <div class="dots">
+                        ${Object.entries(colMap).filter(x=>x[0]!='def').map(([k,val])=>`
+                            <div class="dot" style="background:${val[0]}" onclick="cambiaColore('${id}','${k}')">${val[1]}</div>
+                        `).join('')}
+                    </div>
+                    <button class="btn-del" onclick="elimina('${id}')">🗑️</button>
+                </div>
+            </div>`;
         });
     }
 
@@ -163,12 +203,25 @@
         const ref = db.ref('agenda/' + selectedDate + '/' + id);
         ref.once('value').then(s => {
             const d = s.val() || { h: "", t: "", c: "def" };
-            ref.update({ h: ora !== null ? ora : d.h, t: testo !== null ? testo : d.t, c: d.c });
+            const newData = {
+                h: ora !== null ? ora : (d.h || ""),
+                t: testo !== null ? testo : (d.t || ""),
+                c: d.c || "def"
+            };
+            // Salviamo solo se c'è del testo o se non è un rigo base
+            if (newData.t || !id.startsWith('b_')) {
+                ref.update(newData);
+            }
         });
     }
 
-    function cambiaColore(id, col) { db.ref('agenda/' + selectedDate + '/' + id).update({ c: col }); }
-    function salvaTitolo(v) { db.ref('titoli/' + selectedDate).set(v); }
+    function cambiaColore(id, col) {
+        db.ref('agenda/' + selectedDate + '/' + id).update({ c: col });
+    }
+
+    function salvaTitolo(v) {
+        db.ref('titoli/' + selectedDate).set(v);
+    }
 
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
@@ -178,12 +231,16 @@
             cell.innerHTML = `<b>${i}</b><button class="btn-del-mese" onclick="event.stopPropagation(); resetOrariSpecifico('${ds}')">🗑️</button><div id="tm-${ds}"></div><div id="am-${ds}"></div>`;
             cell.onclick = () => { switchView('giorno'); selectDay(ds); };
             gm.appendChild(cell);
-            db.ref('titoli/'+ds).on('value', s => { if(document.getElementById("tm-"+ds)) document.getElementById("tm-"+ds).innerHTML = s.val() ? `<div style="font-size:8px; background:#fffbe6; padding:1px;">${s.val()}</div>` : ""; });
+            
+            db.ref('titoli/'+ds).on('value', s => { 
+                const div = document.getElementById("tm-"+ds);
+                if(div) div.innerHTML = s.val() ? `<div style="font-size:8px; background:#fffbe6; padding:1px;">${s.val()}</div>` : ""; 
+            });
             db.ref('agenda/'+ds).on('value', s => {
                 const div = document.getElementById("am-"+ds); if(!div) return; div.innerHTML = "";
                 const d = s.val() || {};
                 Object.values(d).filter(x=>x.t).forEach(x => {
-                    div.innerHTML += `<div class="mese-tag" style="background:${colMap[x.c][0]}">${x.h} ${x.t.substring(0,8)}</div>`;
+                    div.innerHTML += `<div class="mese-tag" style="background:${colMap[x.c][0]}">${x.h || ''} ${x.t.substring(0,8)}</div>`;
                 });
             });
         }
@@ -197,19 +254,14 @@
         const h1 = document.getElementById('newOraInizio').value;
         const h2 = document.getElementById('newOraFine').value;
         const t = document.getElementById('newTesto').value;
-        const id = "c_" + Date.now();
+        const id = "custom_" + Date.now();
         db.ref('agenda/'+selectedDate+'/'+id).set({ h: h1 + "-" + h2, t: t, c: 'def' }).then(closeModal);
     }
 
     function elimina(id) { if(confirm("Eliminare?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
-    function resetOrari() { if(confirm("Cancellare tutto il giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); closeModal(); } }
-    function resetOrariSpecifico(ds) { if(confirm("Cancellare dati del " + ds + "?")) { db.ref('agenda/'+ds).remove(); db.ref('titoli/'+ds).remove(); } }
-    function ripristinaBase() { 
-        if(confirm("Ripristinare orari base?")) {
-            const obj = {}; oreBase.forEach(o => { let id = "b_"+o.replace(":",""); obj[id] = {h:o, t:"", c:"def"}; });
-            db.ref('agenda/'+selectedDate).set(obj);
-        }
-    }
+    function resetOrari() { if(confirm("Cancellare tutto il giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
+    function resetOrariSpecifico(ds) { if(confirm("Svuotare il " + ds + "?")) { db.ref('agenda/'+ds).remove(); db.ref('titoli/'+ds).remove(); } }
+    
     window.onload = initCalendar;
 </script>
 </body>
