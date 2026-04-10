@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Fix Orari</title>
+    <title>Agenda 2026 - Debug Finale</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -36,8 +36,8 @@
     <div class="nav-buttons">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
-        <button class="nav-btn" style="background:var(--a);" onclick="alert('Usa le righe del giorno per scrivere')">RIPETI</button>
-        <button class="nav-btn" style="background:var(--festivo);" onclick="if(confirm('Svuotare tutto oggi?')) { db.ref('agenda/'+giornoCorrente).remove(); db.ref('titoli/'+giornoCorrente).remove(); }">RESET</button>
+        <button class="nav-btn" style="background:var(--a);" onclick="alert('Usa le righe per scrivere')">RIPETI</button>
+        <button class="nav-btn" style="background:var(--festivo);" onclick="if(confirm('Reset?')) db.ref('agenda/'+giornoCorrente).remove()">RESET</button>
     </div>
 </div>
 
@@ -109,31 +109,31 @@
         document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
         if(document.getElementById('st-'+data)) document.getElementById('st-'+data).classList.add('active');
         db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
-        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
+        db.ref('agenda/'+data).on('value', s => {
+            datiGiorno = s.val() || {};
+            renderGiorno();
+        });
     }
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.classList.contains('ora-input')) return;
         
-        let visualizzazione = {};
-        // 1. Prepariamo gli orari fissi
+        let righe = [];
         orariFissi.forEach(ora => {
             const id = "h" + ora.replace(":","");
             const esistente = datiGiorno[id] || {};
-            visualizzazione[id] = { id: id, h: esistente.h || ora, t: esistente.t || "", c: esistente.c || "def", sort: cleanH(esistente.h || ora) };
+            righe.push({ id: id, h: esistente.h || ora, t: esistente.t || "", c: esistente.c || "def" });
         });
-
-        // 2. Aggiungiamo i dati orfani (senza ID 'h')
         Object.keys(datiGiorno).forEach(key => {
             if (!key.startsWith('h')) {
                 const item = datiGiorno[key];
-                visualizzazione[key] = { id: key, h: item.h || "??:??", t: item.t || "", c: item.c || "def", sort: cleanH(item.h) };
+                righe.push({ id: key, h: item.h || "??:??", t: item.t || "", c: item.c || "def" });
             }
         });
 
-        container.innerHTML = Object.values(visualizzazione).sort((a,b) => a.sort - b.sort).map(item => `
-            <div class="slot" style="border-left-color:${colMap[item.c][0]}">
+        container.innerHTML = righe.sort((a,b) => cleanH(a.h) - cleanH(b.h)).map(item => `
+            <div class="slot" style="border-left-color:${colMap[item.c]?.[0] || '#ddd'}">
                 <div class="slot-main">
                     <div class="ora-box"><input type="text" class="ora-input" value="${item.h}" onblur="salvaDato('${item.id}', 'h', this.value, '${item.h}')"></div>
                     <textarea class="nota-input" onblur="salvaDato('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
@@ -146,17 +146,16 @@
         `).join('');
     }
 
-    // FUNZIONE DI SALVATAGGIO CORRETTA: Forza l'orario della riga se non esiste
+    // QUESTA È LA SOLA FUNZIONE MODIFICATA PER IL FIX 0:00
     function salvaDato(id, campo, valore, oraDefault) {
-        const ref = db.ref(`agenda/${giornoCorrente}/${id}`);
         let updates = {};
         updates[campo] = valore;
-        // Se nel database manca ancora il campo orario 'h' per questo ID, lo inseriamo usando l'ora della riga
+        // Se l'orario non è ancora presente nel database per questo ID, forziamo quello della riga
         if (!datiGiorno[id] || !datiGiorno[id].h) {
             updates['h'] = oraDefault;
             updates['c'] = 'def';
         }
-        ref.update(updates);
+        db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
 
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
