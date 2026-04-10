@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Stable</title>
+    <title>Agenda Pro 2026 - Ultra Stable</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -14,7 +14,7 @@
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; }
         
-        .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; scroll-behavior: smooth; }
+        .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; }
         .day-item { min-width: 55px; height: 65px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; }
         .day-item.holiday { background: var(--festivo); color: white; }
         .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); }
@@ -33,12 +33,12 @@
 
         #vistaMese { display: none; padding: 5px; }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
-        .cell-mese { background: white; min-height: 90px; padding: 4px; cursor: pointer; font-size: 12px; position: relative; }
-        .mese-title-tag { background: #fff9c4; color: #827717; font-size: 8px; padding: 1px; border-radius: 2px; border: 1px solid #fbc02d; margin-bottom: 2px; }
+        .cell-mese { background: white; min-height: 90px; padding: 4px; cursor: pointer; font-size: 12px; }
+        .mese-title-tag { background: #fff9c4; color: #827717; font-size: 8px; padding: 2px; border-radius: 2px; margin-bottom: 2px; border: 1px solid #fbc02d; overflow: hidden; }
         .mese-app-tag { color: white; padding: 1px 2px; font-size: 8px; border-radius: 2px; margin-bottom: 1px; }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; }
-        .tool-btn { width: 55px; height: 55px; border-radius: 50%; border: none; color: white; font-size: 30px; background: var(--a); }
+        .tool-btn { width: 55px; height: 55px; border-radius: 50%; border: none; color: white; font-size: 30px; background: var(--a); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 85%; padding: 20px; border-radius: 20px; }
     </style>
@@ -78,7 +78,6 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIG (Sostituisci con i tuoi dati) ---
     const firebaseConfig = {
         apiKey: "AIzaSy...", 
         databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/",
@@ -88,6 +87,7 @@
     const db = firebase.database();
     
     let selectedDate = "";
+    let saveTimeout = null;
     const oreBase = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V','#333'], def:['#ddd',''] };
 
@@ -121,26 +121,31 @@
         document.querySelectorAll('.day-item').forEach(d => d.classList.remove('active'));
         if(document.getElementById("day-"+dStr)) document.getElementById("day-"+dStr).classList.add('active');
 
-        // Carica Titolo
         db.ref('titoli/' + dStr).once('value', s => { document.getElementById('dayTitleInput').value = s.val() || ""; });
 
-        // Carica Agenda
         db.ref('agenda/' + dStr).once('value', snap => {
             const dati = snap.val() || {};
             const grid = document.getElementById('gridOraria');
             grid.innerHTML = "";
             
             let mappa = {};
-            oreBase.forEach(o => { let id = "b_"+o.replace(":",""); mappa[id] = {h:o, t:"", c:"def", id:id}; });
-            Object.keys(dati).forEach(k => { mappa[k] = {...dati[k], id:k}; });
+            // Creazione righi base con ID statici puliti
+            oreBase.forEach(o => { 
+                let cleanID = "id_" + o.replace(":", "");
+                mappa[cleanID] = {h:o, t:"", c:"def", id:cleanID}; 
+            });
+            // Sovrapposizione dati salvati (solo se hanno un orario valido)
+            Object.keys(dati).forEach(k => { 
+                if(dati[k].h) mappa[k] = {...dati[k], id:k}; 
+            });
 
             Object.values(mappa).sort((a,b)=>a.h.localeCompare(b.h)).forEach(v => {
                 const c = colMap[v.c] || colMap.def;
                 grid.innerHTML += `
                 <div class="slot" style="border-left-color:${c[0]}" id="slot-${v.id}">
                     <div class="slot-main">
-                        <input type="text" class="ora-input" value="${v.h}" oninput="salvaDato('${v.id}', this.value, null)">
-                        <textarea class="nota-input" oninput="salvaDato('${v.id}', null, this.value)">${v.t}</textarea>
+                        <input type="text" class="ora-input" value="${v.h}" oninput="debounceSave('${v.id}', this.value, null)">
+                        <textarea class="nota-input" oninput="debounceSave('${v.id}', null, this.value)">${v.t}</textarea>
                     </div>
                     <div class="dots">
                         ${Object.entries(colMap).filter(x=>x[0]!='def').map(([key,val])=>`
@@ -153,28 +158,31 @@
         });
     }
 
-    // SALVATAGGIO "STABILE"
-    function salvaDato(id, ora, testo) {
-        const ref = db.ref('agenda/' + selectedDate + '/' + id);
-        ref.once('value').then(s => {
-            const d = s.val() || { h: "", t: "", c: "def" };
-            ref.update({
-                h: ora !== null ? ora : d.h,
-                t: testo !== null ? testo : d.t,
-                c: d.c
+    function debounceSave(id, ora, testo) {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            const ref = db.ref('agenda/' + selectedDate + '/' + id);
+            ref.once('value').then(s => {
+                const d = s.val() || { h: "", t: "", c: "def" };
+                ref.update({
+                    h: ora !== null ? ora : d.h,
+                    t: testo !== null ? testo : d.t,
+                    c: d.c
+                });
             });
+        }, 1000); // Salva dopo 1 secondo di inattività
+    }
+
+    function cambiaColore(id, colore_key) {
+        db.ref('agenda/' + selectedDate + '/' + id).update({ c: colore_key }).then(() => {
+            document.getElementById('slot-'+id).style.borderLeftColor = colMap[colore_key][0];
         });
     }
 
-    function cambiaColore(id, colore) {
-        db.ref('agenda/' + selectedDate + '/' + id).update({ c: colore }).then(() => {
-            document.getElementById('slot-'+id).style.borderLeftColor = colMap[col_key][0];
-        });
-        // Ricarichiamo solo il colore visivamente senza rigenerare tutto
-        location.reload(); // Semplice ma efficace per il colore
+    function salvaTitolo(v) {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => { db.ref('titoli/' + selectedDate).set(v); }, 1000);
     }
-
-    function salvaTitolo(v) { db.ref('titoli/' + selectedDate).set(v); }
 
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
@@ -193,20 +201,31 @@
         }
     }
 
-    function switchView(v) { document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; }
+    function switchView(v) { 
+        document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; 
+        document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; 
+    }
+    
     function openModal() { document.getElementById('modalAdd').style.display='flex'; }
     function closeModal() { document.getElementById('modalAdd').style.display='none'; }
+
     function salvaDalModal() {
-        const id = "c_" + Date.now();
-        db.ref('agenda/'+selectedDate+'/'+id).set({ h: document.getElementById('newOra').value, t: document.getElementById('newTesto').value, c: 'def' });
-        closeModal(); selectDay(selectedDate);
+        const id = "custom_" + Date.now();
+        const h = document.getElementById('newOra').value;
+        const t = document.getElementById('newTesto').value;
+        if(!h) return alert("Inserisci un orario");
+        db.ref('agenda/'+selectedDate+'/'+id).set({ h: h, t: t, c: 'def' }).then(() => {
+            closeModal(); selectDay(selectedDate);
+        });
     }
-    function elimina(id) { if(confirm("Elimina?")) { db.ref('agenda/'+selectedDate+'/'+id).remove(); selectDay(selectedDate); } }
-    function resetOrari() { if(confirm("Resetta giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); selectDay(selectedDate); } }
+
+    function elimina(id) { if(confirm("Eliminare questo rigo?")) { db.ref('agenda/'+selectedDate+'/'+id).remove().then(() => selectDay(selectedDate)); } }
+    function resetOrari() { if(confirm("Cancellare TUTTO il giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); selectDay(selectedDate); } }
     function ripristinaBase() { 
-        if(confirm("Ripristina orari base?")) { 
-            const obj = {}; oreBase.forEach(o => { let id = "b_"+o.replace(":",""); obj[id] = {h:o, t:"", c:"def"}; });
-            db.ref('agenda/'+selectedDate).set(obj); selectDay(selectedDate);
+        if(confirm("Ripristinare gli orari standard?")) { 
+            const obj = {}; 
+            oreBase.forEach(o => { let id = "id_" + o.replace(":",""); obj[id] = {h:o, t:"", c:"def"}; });
+            db.ref('agenda/'+selectedDate).set(obj).then(() => selectDay(selectedDate));
         } 
     }
     window.onload = initCalendar;
