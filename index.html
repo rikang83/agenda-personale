@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Stabile</title>
+    <title>Agenda 2026 - Versione Definitiva</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -33,7 +33,7 @@
         .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 10px; align-items: center; }
         .ora-box { width: 75px; flex-shrink: 0; }
-        .ora-box.hidden { width: 0; opacity: 0; display: none; }
+        .ora-box.hidden { display: none; }
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; resize: none; outline: none; }
         
@@ -54,6 +54,10 @@
 
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
+        .weekday-selector { display: flex; justify-content: space-between; margin: 10px 0; }
+        .day-check { display: none; }
+        .day-label { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; cursor: pointer; border: 1px solid #ddd; }
+        .day-check:checked + .day-label { background: var(--r); color: white; border-color: var(--r); }
     </style>
 </head>
 <body>
@@ -63,6 +67,7 @@
     <div class="nav-buttons">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
+        <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
         <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
         <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
         <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">RESET</button>
@@ -89,6 +94,33 @@
     </div>
 </div>
 
+<div id="repModal" class="overlay" onclick="closeModal('repModal')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h3 style="margin-top:0; text-align:center;">Ripetizione Impegni</h3>
+        <input type="text" id="repTesto" placeholder="Cosa ripetere?" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+        
+        <div class="weekday-selector">
+            <input type="checkbox" id="d1" class="day-check" value="1"><label for="d1" class="day-label">LUN</label>
+            <input type="checkbox" id="d2" class="day-check" value="2"><label for="d2" class="day-label">MAR</label>
+            <input type="checkbox" id="d3" class="day-check" value="3"><label for="d3" class="day-label">MER</label>
+            <input type="checkbox" id="d4" class="day-check" value="4"><label for="d4" class="day-label">GIO</label>
+            <input type="checkbox" id="d5" class="day-check" value="5"><label for="d5" class="day-label">VEN</label>
+            <input type="checkbox" id="d6" class="day-check" value="6"><label for="d6" class="day-label">SAB</label>
+            <input type="checkbox" id="d0" class="day-check" value="0"><label for="d0" class="day-label">DOM</label>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <select id="repHInizio" style="flex:1; padding:10px; border-radius:8px;"></select>
+            <select id="repHFine" style="flex:1; padding:10px; border-radius:8px;"></select>
+        </div>
+
+        <input type="date" id="repDataFine" style="width:100%; padding:12px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
+        
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:14px; background:var(--a); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">APPLICA</button>
+        <button onclick="pulisciPerParola()" style="width:100%; padding:14px; background:var(--festivo); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:10px;">PULISCI PER PAROLA</button>
+    </div>
+</div>
+
 <script>
     const firebaseConfig = { databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig);
@@ -107,6 +139,9 @@
         if(!mp.options.length) {
             ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m+" 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+            // Popola i select orari nel popup
+            const si = document.getElementById('repHInizio'); const sf = document.getElementById('repHFine');
+            orariFissi.forEach(h => { si.add(new Option(h, h)); sf.add(new Option(h, h)); });
         }
         const [y, m] = mp.value.split('-').map(Number);
         const strip = document.getElementById('strip'); strip.innerHTML = "";
@@ -160,7 +195,6 @@
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.classList.contains('ora-input')) return;
-        
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
         
@@ -189,7 +223,6 @@
     }
 
     function salvaCampo(id, campo, valore) {
-        // Forza il mantenimento dell'orario corretto se si sta salvando il testo
         const oraDefault = id.substring(1,3) + ":" + id.substring(3,5);
         const aggiornamento = {};
         aggiornamento[campo] = valore;
@@ -206,6 +239,47 @@
     function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
     function openModal(id) { document.getElementById(id).style.display='flex'; }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
+    function openRepModal() { 
+        document.getElementById('repDataFine').value = giornoCorrente;
+        document.querySelectorAll('.day-check').forEach(c => c.checked = false);
+        openModal('repModal'); 
+    }
+
+    function eseguiRipetizione() {
+        const testo = document.getElementById('repTesto').value;
+        const hInizio = cleanH(document.getElementById('repHInizio').value);
+        const hFine = cleanH(document.getElementById('repHFine').value);
+        const dataFine = document.getElementById('repDataFine').value;
+        const giorni = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
+        if(!testo || !dataFine || giorni.length === 0) return alert("Dati mancanti!");
+        
+        let d = new Date(giornoCorrente);
+        while(d <= new Date(dataFine)) {
+            if(giorni.includes(d.getDay())) {
+                const iso = d.toISOString().split('T')[0];
+                orariFissi.forEach(h => {
+                    if(cleanH(h) >= hInizio && cleanH(h) <= hFine) {
+                        db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' });
+                    }
+                });
+            }
+            d.setDate(d.getDate() + 1);
+        }
+        alert("Completato!"); closeModal('repModal');
+    }
+
+    function pulisciPerParola() {
+        const p = document.getElementById('repTesto').value;
+        if(!p) return alert("Scrivi una parola!");
+        db.ref('agenda').once('value', snap => {
+            const data = snap.val() || {};
+            Object.keys(data).forEach(d => Object.keys(data[d]).forEach(id => {
+                if(data[d][id].t && data[d][id].t.includes(p)) db.ref(`agenda/${d}/${id}`).remove();
+            }));
+            alert("Pulito!");
+        });
+    }
+
     function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
     
     window.onload = initCalendar;
