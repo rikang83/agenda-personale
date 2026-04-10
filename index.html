@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026</title>
+    <title>Agenda Pro 2026 - Versione Stabile</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -14,8 +14,8 @@
         .nav-buttons { display: flex; justify-content: center; gap: 8px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         
-        /* Master Switch Style */
-        .master-switch { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 11px; font-weight: bold; }
+        /* Master Switch */
+        .master-switch { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; color: white; font-size: 11px; font-weight: bold; border: 1px solid white; }
         .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
@@ -23,39 +23,38 @@
         input:checked + .slider { background-color: var(--a); }
         input:checked + .slider:before { transform: translateX(16px); }
 
-        #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; }
+        #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; margin-bottom: 5px; }
 
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; }
         .day-item { min-width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; }
         .day-item.holiday { background: var(--festivo); color: white; }
         .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); }
 
-        .day-title-input { width: 95%; margin: 10px auto; display: block; border: 2px dashed #ccc; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; background: #fffbe6; }
+        .day-title-input { width: 95%; margin: 10px auto; display: block; border: 2px dashed #ccc; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; background: #fffbe6; box-sizing: border-box; }
 
         .content { padding: 10px; padding-bottom: 100px; }
         .slot { background: white; margin-bottom: 12px; padding: 12px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 10px solid #ddd; display: flex; flex-direction: column; }
-        .slot-main { display: flex; gap: 10px; align-items: flex-start; }
-        
-        .ora-input { width: 85px; border: none; font-weight: bold; color: var(--p); background: #f0f4f8; padding: 10px; border-radius: 8px; text-align: center; font-size: 14px; }
+        .slot-main { display: flex; gap: 10px; align-items: center; }
+        .ora-input { width: 85px; border: none; font-weight: bold; color: var(--p); background: #f0f4f8; padding: 10px; border-radius: 8px; text-align: center; }
         .nota-input { flex: 1; border: none; font-size: 16px; padding: 10px; background: #f8f9fa; border-radius: 8px; resize: none; min-height: 45px; }
 
-        .actions { display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; align-items: center; }
+        .actions { display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .dots { display: flex; gap: 8px; }
         .dot { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-weight: bold; font-size: 12px; }
         .btn-del { background: #fee2e2; color: #ef4444; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 18px; }
 
-        /* VISTA MESE */
+        /* MESE */
         #vistaMese { display: none; padding: 5px; }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
-        .cell-mese { background: white; min-height: 120px; padding: 4px; cursor: pointer; position: relative; overflow: hidden; }
-        .btn-del-mese { position: absolute; top: 2px; right: 2px; background: rgba(255,0,0,0.1); border: none; color: red; border-radius: 4px; padding: 2px 5px; font-size: 12px; z-index: 10; font-weight: bold; }
+        .cell-mese { background: white; min-height: 120px; padding: 4px; cursor: pointer; position: relative; overflow: hidden; border: 1px solid #eee; }
+        .btn-del-mese { position: absolute; top: 2px; right: 2px; background: #ffeded; border: 1px solid red; color: red; border-radius: 4px; padding: 2px 4px; font-size: 10px; cursor: pointer; z-index: 10; font-weight: bold; }
         .mese-tag { color: white; padding: 2px; font-size: 9px; border-radius: 3px; margin-top: 1px; white-space: nowrap; overflow: hidden; }
 
         /* MODAL */
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 20px; }
         .modal-content input, .modal-content textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
-        .btn-block { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 16px; }
+        .btn-block { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; margin-top: 10px; cursor: pointer; }
 
         .floating-tools { position: fixed; bottom: 25px; right: 25px; z-index: 4000; }
         .tool-btn { width: 65px; height: 65px; border-radius: 50%; border: none; color: white; font-size: 40px; background: var(--a); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
@@ -69,13 +68,13 @@
         <button class="nav-btn" onclick="switchView('giorno')">GIORNO</button>
         <button class="nav-btn" onclick="switchView('mese')">MESE</button>
         <div class="master-switch">
-            ORARI BASE
+            ORARI
             <label class="switch">
                 <input type="checkbox" id="baseToggle" onchange="renderAgenda()">
                 <span class="slider"></span>
             </label>
         </div>
-        <button class="nav-btn" onclick="resetOrari()" style="background: var(--festivo); border:none;">AZZERA</button>
+        <button class="nav-btn" onclick="resetOrari()" style="background: var(--festivo);">AZZERA</button>
     </div>
 </div>
 
@@ -91,12 +90,12 @@
 
 <div id="modalAdd">
     <div class="modal-content">
-        <h3>Nuovo Appuntamento</h3>
+        <h3>Nuovo Impegno</h3>
         <div style="display:flex; gap:10px;">
             <div style="flex:1"><label>Inizio</label><input type="time" id="newOraInizio" value="09:00"></div>
             <div style="flex:1"><label>Fine</label><input type="time" id="newOraFine" value="10:00"></div>
         </div>
-        <textarea id="newTesto" rows="3" placeholder="Note / Nome..."></textarea>
+        <textarea id="newTesto" rows="3" placeholder="Note..."></textarea>
         <button class="btn-block" style="background:var(--a); color:white" onclick="salvaDalModal()">SALVA</button>
         <button class="btn-block" style="background:#eee" onclick="closeModal()">CHIUDI</button>
     </div>
@@ -112,7 +111,7 @@
     const db = firebase.database();
     
     let selectedDate = "";
-    let agendaCorrente = {};
+    let datiGiorno = {};
     const oreBase = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V','#333'], def:['#ddd',''] };
 
@@ -145,9 +144,8 @@
 
         db.ref('titoli/' + dStr).once('value', s => { document.getElementById('dayTitleInput').value = s.val() || ""; });
 
-        // Ascolto continuo del database per questo giorno
         db.ref('agenda/' + dStr).on('value', snap => {
-            agendaCorrente = snap.val() || {};
+            datiGiorno = snap.val() || {};
             renderAgenda();
         });
     }
@@ -158,26 +156,24 @@
         if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
 
         grid.innerHTML = "";
-        
         let visualizza = {};
 
-        // Se lo switch è ON, aggiungiamo i righi base vuoti alla mappa
+        // 1. Carichiamo tutto ciò che esiste nel database
+        Object.keys(datiGiorno).forEach(id => { visualizza[id] = datiGiorno[id]; });
+
+        // 2. Se lo switch è acceso, aggiungiamo i righi base che mancano
         if(showBase) {
             oreBase.forEach(o => {
-                let id = "b_" + o.replace(":","");
-                visualizza[id] = { h: o, t: "", c: "def" };
+                let idBase = "b_" + o.replace(":","");
+                if(!visualizza[idBase]) visualizza[idBase] = { h: o, t: "", c: "def" };
             });
         }
 
-        // Sovrascriviamo o aggiungiamo i dati reali dal database
-        Object.keys(agendaCorrente).forEach(id => {
-            visualizza[id] = agendaCorrente[id];
-        });
-
-        // Ordiniamo e mostriamo
+        // 3. Mostriamo i righi ordinati per ora
         Object.keys(visualizza).sort((a,b) => (visualizza[a].h || "").localeCompare(visualizza[b].h || "")).forEach(id => {
             const v = visualizza[id];
-            // Se lo switch è OFF, non mostriamo i righi base che sono rimasti vuoti
+            
+            // Se lo switch è SPENTO, non mostriamo i righi base se sono vuoti
             if(!showBase && id.startsWith('b_') && !v.t) return;
 
             const c = colMap[v.c] || colMap.def;
@@ -202,45 +198,34 @@
     function salvaDato(id, ora, testo) {
         const ref = db.ref('agenda/' + selectedDate + '/' + id);
         ref.once('value').then(s => {
-            const d = s.val() || { h: "", t: "", c: "def" };
-            const newData = {
+            const d = s.val() || {};
+            const upd = {
                 h: ora !== null ? ora : (d.h || ""),
                 t: testo !== null ? testo : (d.t || ""),
                 c: d.c || "def"
             };
-            // Salviamo solo se c'è del testo o se non è un rigo base
-            if (newData.t || !id.startsWith('b_')) {
-                ref.update(newData);
-            }
+            // Salviamo solo se c'è testo o se non è un rigo base vuoto
+            if(upd.t || !id.startsWith('b_')) ref.update(upd);
         });
     }
 
-    function cambiaColore(id, col) {
-        db.ref('agenda/' + selectedDate + '/' + id).update({ c: col });
-    }
-
-    function salvaTitolo(v) {
-        db.ref('titoli/' + selectedDate).set(v);
-    }
+    function cambiaColore(id, col) { db.ref('agenda/' + selectedDate + '/' + id).update({ c: col }); }
+    function salvaTitolo(v) { db.ref('titoli/' + selectedDate).set(v); }
 
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
         for (let i = 1; i <= new Date(y, m, 0).getDate(); i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const cell = document.createElement('div'); cell.className = 'cell-mese';
-            cell.innerHTML = `<b>${i}</b><button class="btn-del-mese" onclick="event.stopPropagation(); resetOrariSpecifico('${ds}')">🗑️</button><div id="tm-${ds}"></div><div id="am-${ds}"></div>`;
+            cell.innerHTML = `<b>${i}</b><button class="btn-del-mese" onclick="event.stopPropagation(); resetGiornoSpecifico('${ds}')">🗑️</button><div id="tm-${ds}"></div><div id="am-${ds}"></div>`;
             cell.onclick = () => { switchView('giorno'); selectDay(ds); };
             gm.appendChild(cell);
-            
-            db.ref('titoli/'+ds).on('value', s => { 
-                const div = document.getElementById("tm-"+ds);
-                if(div) div.innerHTML = s.val() ? `<div style="font-size:8px; background:#fffbe6; padding:1px;">${s.val()}</div>` : ""; 
-            });
-            db.ref('agenda/'+ds).on('value', s => {
+            db.ref('titoli/'+ds).on('value', s => { if(document.getElementById("tm-"+ds)) document.getElementById("tm-"+ds).innerHTML = s.val() ? `<div style="font-size:8px; background:#fffbe6; overflow:hidden;">${s.val()}</div>` : ""; });
+            db.ref('agenda/'+ds).on('value', snap => {
                 const div = document.getElementById("am-"+ds); if(!div) return; div.innerHTML = "";
-                const d = s.val() || {};
+                const d = snap.val() || {};
                 Object.values(d).filter(x=>x.t).forEach(x => {
-                    div.innerHTML += `<div class="mese-tag" style="background:${colMap[x.c][0]}">${x.h || ''} ${x.t.substring(0,8)}</div>`;
+                    div.innerHTML += `<div class="mese-tag" style="background:${colMap[x.c][0]}">${x.h || ''} ${x.t.substring(0,6)}</div>`;
                 });
             });
         }
@@ -253,14 +238,13 @@
     function salvaDalModal() {
         const h1 = document.getElementById('newOraInizio').value;
         const h2 = document.getElementById('newOraFine').value;
-        const t = document.getElementById('newTesto').value;
-        const id = "custom_" + Date.now();
-        db.ref('agenda/'+selectedDate+'/'+id).set({ h: h1 + "-" + h2, t: t, c: 'def' }).then(closeModal);
+        const id = "c_" + Date.now();
+        db.ref('agenda/'+selectedDate+'/'+id).set({ h: h1 + "-" + h2, t: document.getElementById('newTesto').value, c: 'def' }).then(closeModal);
     }
 
     function elimina(id) { if(confirm("Eliminare?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
-    function resetOrari() { if(confirm("Cancellare tutto il giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
-    function resetOrariSpecifico(ds) { if(confirm("Svuotare il " + ds + "?")) { db.ref('agenda/'+ds).remove(); db.ref('titoli/'+ds).remove(); } }
+    function resetOrari() { if(confirm("Azzera tutto il giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
+    function resetGiornoSpecifico(ds) { if(confirm("Svuotare il " + ds + "?")) { db.ref('agenda/'+ds).remove(); db.ref('titoli/'+ds).remove(); } }
     
     window.onload = initCalendar;
 </script>
