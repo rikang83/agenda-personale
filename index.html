@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026 - Fix Ordinamento</title>
+    <title>Agenda Pro 2026 - Versione Definitiva</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; }
+        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --evidenza: #fffbe6; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
         
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
@@ -25,28 +25,29 @@
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; gap: 8px; border-bottom: 1px solid #ddd; scroll-behavior: smooth; }
         .day-item { min-width: 55px; padding: 10px 5px; border-radius: 10px; border: 1px solid #eee; text-align: center; cursor: pointer; background: white; flex-shrink: 0; }
         .day-item.active { background: var(--r) !important; color: white !important; }
-        /* FESTIVI: SFONDO ROSSO SCRITTA BIANCA */
         .day-item.holiday { background: var(--festivo) !important; color: white !important; font-weight: bold; }
 
-        .day-title { width: 100%; padding: 15px; border: none; background: #fffbe6; font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; }
+        .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; }
         
         .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 8px; align-items: center; }
         
-        /* Gestione visibilità orario senza spostare la riga */
         .ora-container { width: 85px; }
-        .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); transition: opacity 0.3s; }
-        .ora-hidden { opacity: 0 !important; }
+        .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
+        .ora-hidden { visibility: hidden; }
         
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; }
         
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
-        .cell-mese { background: white; min-height: 90px; padding: 4px; position: relative; cursor: pointer; }
-        .cell-mese.holiday { background: var(--festivo); color: white; }
+        .cell-mese { background: white; min-height: 100px; padding: 4px; position: relative; cursor: pointer; border: 1px solid #eee; }
+        .cell-mese.holiday { background: var(--festivo) !important; color: white !important; }
         .cell-mese.holiday b { color: white; }
+        /* Titolo nel mese con evidenziatore */
+        .titolo-mese-box { background: var(--evidenza); font-size: 9px; font-weight: bold; padding: 2px; margin-top: 2px; color: #333; border-radius: 2px; }
 
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
-        .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; }
+        .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; max-height: 80vh; overflow-y: auto; }
+        .btn-modal { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -59,7 +60,7 @@
         <div class="master-switch">
             ORARI <label class="switch"><input type="checkbox" id="baseToggle" checked onchange="renderAgenda()"><span class="slider"></span></label>
         </div>
-        <button class="nav-btn" style="background:var(--festivo);" onclick="resetTesti()">RESET</button>
+        <button class="nav-btn" style="background:var(--festivo);" onclick="resetTestiSolo()">RESET TESTI</button>
     </div>
 </div>
 
@@ -75,11 +76,22 @@
 
 <div id="modalAdd">
     <div class="modal-box">
-        <h3>Nuovo Appuntamento</h3>
-        <input type="time" id="mInizio" value="09:00"> a <input type="time" id="mFine" value="10:00">
-        <textarea id="mTesto" rows="4" style="width:100%; margin:15px 0; padding:10px;" placeholder="Dettagli..."></textarea>
-        <button onclick="salvaModal()" style="width:100%; padding:12px; background:var(--a); color:white; border:none; border-radius:8px;">SALVA</button>
-        <button onclick="closeModal()" style="width:100%; padding:12px; background:#eee; border:none; border-radius:8px; margin-top:5px;">CHIUDI</button>
+        <h3 style="margin-top:0">Gestione Impegni</h3>
+        <div style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
+            <p style="font-size: 12px; margin: 0 0 5px 0;">NUOVO APPUNTAMENTO:</p>
+            <input type="time" id="mInizio" value="09:00"> a <input type="time" id="mFine" value="10:00">
+            <textarea id="mTesto" rows="3" style="width:100%; margin:10px 0; padding:10px; box-sizing: border-box;" placeholder="Cosa devi fare?"></textarea>
+            <button class="btn-modal" style="background:var(--a); color:white" onclick="salvaModal()">AGGIUNGI</button>
+        </div>
+        
+        <div style="background: #fff5f5; padding: 10px; border-radius: 8px;">
+            <p style="font-size: 12px; margin: 0 0 5px 0; color: var(--festivo);">CANCELLAZIONE AVANZATA:</p>
+            <input type="text" id="keySearch" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px; box-sizing: border-box;" placeholder="Parola chiave (es: Palestra)">
+            <button class="btn-modal" style="background:var(--festivo); color:white" onclick="deleteByKey()">CANCELLA PER PAROLA CHIAVE</button>
+            <button class="btn-modal" style="background:#333; color:white" onclick="resetInteroGiorno()">SVUOTA TUTTO IL GIORNO</button>
+        </div>
+        
+        <button class="btn-modal" style="background:#eee" onclick="closeModal()">CHIUDI</button>
     </div>
 </div>
 
@@ -90,7 +102,13 @@
     
     let currentDay = "";
     let localData = {};
-    const oreBase = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
+    // Gli orari base ora hanno un peso fisso (ordine)
+    const oreBase = [
+        {h:"09:00", p:10}, {h:"09:30", p:15}, {h:"10:00", p:20}, {h:"10:30", p:25}, 
+        {h:"11:00", p:30}, {h:"11:30", p:35}, {h:"12:00", p:40}, {h:"12:30", p:45}, 
+        {h:"13:00", p:50}, {h:"16:30", p:55}, {h:"17:00", p:60}, {h:"17:30", p:65}, 
+        {h:"18:00", p:70}, {h:"18:30", p:75}, {h:"19:00", p:80}, {h:"19:30", p:85}, {h:"20:00", p:90}
+    ];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
 
     function initCalendar() {
@@ -113,31 +131,31 @@
             strip.appendChild(di);
 
             const cell = document.createElement('div'); cell.className = `cell-mese ${isSun?'holiday':''}`;
-            cell.innerHTML = `<b>${d}</b><div id="mt-${ds}" style="font-size:9px; font-weight:bold;"></div><div id="mb-${ds}"></div>`;
+            cell.innerHTML = `<b>${d}</b><div id="mt-${ds}" class="titolo-mese-box"></div><div id="mb-${ds}"></div>`;
             cell.onclick = () => { toggleVista('giorno'); selectDay(ds); };
             gm.appendChild(cell);
 
-            db.ref('titoli/'+ds).on('value', s => document.getElementById('mt-'+ds).innerText = s.val() || "");
+            db.ref('titoli/'+ds).on('value', s => { 
+                const el = document.getElementById('mt-'+ds);
+                el.innerText = s.val() || "";
+                el.style.display = s.val() ? 'block' : 'none';
+            });
             db.ref('agenda/'+ds).on('value', s => {
                 const b = document.getElementById('mb-'+ds); b.innerHTML = "";
                 const val = s.val() || {};
                 Object.values(val).forEach(v => { if(v.t) b.innerHTML += `<div style="background:${(colMap[v.c]||colMap.def)[0]}; color:white; font-size:7px; margin-top:1px; padding:1px; border-radius:2px">${v.h}</div>`; });
             });
         }
-        
         const oggi = new Date().toISOString().split('T')[0];
         const startDay = oggi.startsWith(mp.value) ? oggi : `${y}-${String(m).padStart(2,'0')}-01`;
         selectDay(startDay);
-        setTimeout(() => {
-            const el = document.getElementById("s-"+startDay);
-            if(el) el.scrollIntoView({behavior: "smooth", block: "nearest", inline: "center"});
-        }, 500);
+        setTimeout(() => { document.getElementById("s-"+startDay)?.scrollIntoView({behavior:"smooth",inline:"center"}); }, 500);
     }
 
     function selectDay(d) {
         currentDay = d;
         document.querySelectorAll('.day-item').forEach(x => x.classList.remove('active'));
-        if(document.getElementById('s-'+d)) document.getElementById('s-'+d).classList.add('active');
+        document.getElementById('s-'+d)?.classList.add('active');
         db.ref('titoli/'+d).once('value', s => document.getElementById('dayTitle').value = s.val() || "");
         db.ref('agenda/'+d).on('value', s => { localData = s.val() || {}; renderAgenda(); });
     }
@@ -148,26 +166,25 @@
         if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
         grid.innerHTML = "";
         
-        let visualizza = {...localData};
-        // Carichiamo SEMPRE gli orari base
-        oreBase.forEach(o => { 
-            const id = "b_"+o.replace(":",""); 
-            if(!visualizza[id]) visualizza[id] = {h:o, t:"", c:"def"}; 
+        let pool = {...localData};
+        // Garantiamo la presenza degli orari base con il loro PESO (p)
+        oreBase.forEach(o => {
+            const id = "b_"+o.h.replace(":","");
+            if(!pool[id]) pool[id] = {h:o.h, t:"", c:"def", p:o.p};
+            else if(!pool[id].p) db.ref(`agenda/${currentDay}/${id}/p`).set(o.p); // Fix per vecchi dati senza peso
         });
 
-        // Ordinamento cronologico rigoroso basato sul campo 'h'
-        const sortedKeys = Object.keys(visualizza).sort((a,b) => visualizza[a].h.localeCompare(visualizza[b].h));
+        // ORDINAMENTO PER PESO (p), NON PER ORARIO SCRITTO!
+        const sorted = Object.keys(pool).sort((a,b) => (pool[a].p || 999) - (pool[b].p || 999));
 
-        sortedKeys.forEach(id => {
-            const v = visualizza[id];
+        sorted.forEach(id => {
+            const v = pool[id];
             const c = colMap[v.c] || colMap.def;
-            
             grid.innerHTML += `
             <div class="slot" style="border-left-color:${c[0]}">
                 <div class="slot-main">
                     <div class="ora-container">
-                        <input type="text" class="ora-input ${showOrari ? '' : 'ora-hidden'}" 
-                               value="${v.h}" onblur="salva('${id}', this.value, null)">
+                        <input type="text" class="ora-input ${showOrari?'':'ora-hidden'}" value="${v.h}" onblur="salva('${id}', this.value, null)">
                     </div>
                     <textarea class="nota-input" onblur="salva('${id}', null, this.value)">${v.t}</textarea>
                 </div>
@@ -182,29 +199,50 @@
     function salva(id, h, t) {
         const ref = db.ref(`agenda/${currentDay}/${id}`);
         ref.once('value', s => {
-            const old = s.val() || {h:"", t:"", c:"def"};
-            const nuovoH = h !== null ? h : old.h;
-            const nuovoT = t !== null ? t : old.t;
-            // IMPORTANTE: Non permettiamo mai di salvare un orario vuoto se è una riga base
-            const finaleH = (id.startsWith('b_') && nuovoH === "") ? old.h : nuovoH;
-            ref.update({h: finaleH, t: nuovoT, c: old.c || 'def'});
+            const old = s.val() || {};
+            const nh = h !== null ? h : (old.h || "");
+            const nt = t !== null ? t : (old.t || "");
+            // Se è una riga base e non ha peso, lo assegniamo ora
+            let peso = old.p;
+            if(!peso && id.startsWith('b_')) {
+                const base = oreBase.find(x => "b_"+x.h.replace(":","") === id);
+                peso = base ? base.p : 999;
+            }
+            ref.update({h: nh, t: nt, c: old.c || 'def', p: peso || Date.now()});
         });
     }
 
+    function deleteByKey() {
+        const key = document.getElementById('keySearch').value.toLowerCase();
+        if(!key) return alert("Inserisci una parola!");
+        let count = 0;
+        Object.keys(localData).forEach(id => {
+            if(localData[id].t.toLowerCase().includes(key)) {
+                db.ref(`agenda/${currentDay}/${id}`).remove();
+                count++;
+            }
+        });
+        alert(`Eliminati ${count} elementi.`);
+        closeModal();
+    }
+
+    function resetInteroGiorno() { if(confirm("Vuoi svuotare TUTTO il giorno?")) { db.ref('agenda/'+currentDay).remove(); db.ref('titoli/'+currentDay).remove(); closeModal(); } }
+    function resetTestiSolo() { if(confirm("Vuoi cancellare solo i testi?")) { Object.keys(localData).forEach(id => db.ref(`agenda/${currentDay}/${id}/t`).set("")); } }
     function colora(id, c) { db.ref(`agenda/${currentDay}/${id}`).update({c:c}); }
     function salvaTitolo(v) { db.ref('titoli/'+currentDay).set(v); }
     function del(id) { if(confirm("Elimina?")) db.ref(`agenda/${currentDay}/${id}`).remove(); }
-    function resetTesti() { if(confirm("Resettare i testi?")) { Object.keys(localData).forEach(id => db.ref(`agenda/${currentDay}/${id}`).update({t:""})); } }
-    
     function toggleVista(v) { document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; }
     function openModal() { document.getElementById('modalAdd').style.display='flex'; }
     function closeModal() { document.getElementById('modalAdd').style.display='none'; }
     function salvaModal() {
         const t = document.getElementById('mTesto').value;
         const h = document.getElementById('mInizio').value + "-" + document.getElementById('mFine').value;
-        if(t) db.ref(`agenda/${currentDay}/c_${Date.now()}`).set({h:h, t:t, c:'def'}).then(() => { closeModal(); document.getElementById('mTesto').value=""; });
+        if(t) {
+            const id = "c_" + Date.now();
+            db.ref(`agenda/${currentDay}/${id}`).set({h:h, t:t, c:'def', p: Date.now()}).then(closeModal);
+            document.getElementById('mTesto').value = "";
+        }
     }
-
     window.onload = initCalendar;
 </script>
 </body>
