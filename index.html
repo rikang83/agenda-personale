@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Versione Definitiva</title>
+    <title>Agenda 2026 - Fix Finale</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -48,7 +48,7 @@
         .cell-mese.nat-holiday { background: #ffcdd2; }
         
         .btn-del-mese { position: absolute; top: 2px; right: 2px; background: none; border: none; font-size: 12px; cursor: pointer; opacity: 0.3; z-index: 5; }
-        .m-titolo-box { background: var(--evidenza); font-size: 9px; font-weight: bold; color: #b8860b; text-align: center; padding: 3px 2px; margin: 4px 0; border-bottom: 1px solid #ffe082; min-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .m-titolo-box { background: var(--evidenza); font-size: 9px; font-weight: bold; color: #b8860b; text-align: center; padding: 3px 2px; margin: 4px 0; border-bottom: 1px solid #ffe082; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
         .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fest-label { font-size: 7px; color: var(--festivo-dark); font-weight: bold; display: block; margin-top: 1px; }
 
@@ -98,7 +98,6 @@
     <div class="modal-box" onclick="event.stopPropagation()">
         <h3 style="margin-top:0; text-align:center;">Ripetizione Impegni</h3>
         <input type="text" id="repTesto" placeholder="Cosa ripetere?" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
-        
         <div class="weekday-selector">
             <input type="checkbox" id="d1" class="day-check" value="1"><label for="d1" class="day-label">LUN</label>
             <input type="checkbox" id="d2" class="day-check" value="2"><label for="d2" class="day-label">MAR</label>
@@ -108,14 +107,11 @@
             <input type="checkbox" id="d6" class="day-check" value="6"><label for="d6" class="day-label">SAB</label>
             <input type="checkbox" id="d0" class="day-check" value="0"><label for="d0" class="day-label">DOM</label>
         </div>
-
         <div style="display:flex; gap:10px; margin-top:10px;">
             <select id="repHInizio" style="flex:1; padding:10px; border-radius:8px;"></select>
             <select id="repHFine" style="flex:1; padding:10px; border-radius:8px;"></select>
         </div>
-
         <input type="date" id="repDataFine" style="width:100%; padding:12px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
-        
         <button onclick="eseguiRipetizione()" style="width:100%; padding:14px; background:var(--a); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">APPLICA</button>
         <button onclick="pulisciPerParola()" style="width:100%; padding:14px; background:var(--festivo); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:10px;">PULISCI PER PAROLA</button>
     </div>
@@ -139,7 +135,6 @@
         if(!mp.options.length) {
             ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m+" 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-            // Popola i select orari nel popup
             const si = document.getElementById('repHInizio'); const sf = document.getElementById('repHFine');
             orariFissi.forEach(h => { si.add(new Option(h, h)); sf.add(new Option(h, h)); });
         }
@@ -169,7 +164,11 @@
 
             db.ref('titoli/'+iso).on('value', s => { 
                 const el = document.getElementById('m-tit-'+iso); 
-                if(el) el.innerText = s.val() || ""; 
+                if(el) {
+                    const val = s.val() || "";
+                    el.innerText = val;
+                    el.style.display = val.trim() !== "" ? "block" : "none";
+                } 
             });
             db.ref('agenda/'+iso).on('value', s => {
                 const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
@@ -197,14 +196,12 @@
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.classList.contains('ora-input')) return;
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
-        
         let pool = [];
         orariFissi.forEach(h => {
             const id = "h" + h.replace(":", "");
             const esistente = datiGiorno[id];
             pool.push({ id: id, h: esistente ? esistente.h : h, t: esistente ? esistente.t : "", c: esistente ? esistente.c : "def" });
         });
-
         let html = "";
         pool.sort((a,b) => cleanH(a.h) - cleanH(b.h)).forEach(item => {
             if(item.t || mostraTutteRighe) {
@@ -239,12 +236,7 @@
     function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
     function openModal(id) { document.getElementById(id).style.display='flex'; }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
-    function openRepModal() { 
-        document.getElementById('repDataFine').value = giornoCorrente;
-        document.querySelectorAll('.day-check').forEach(c => c.checked = false);
-        openModal('repModal'); 
-    }
-
+    function openRepModal() { document.getElementById('repDataFine').value = giornoCorrente; openModal('repModal'); }
     function eseguiRipetizione() {
         const testo = document.getElementById('repTesto').value;
         const hInizio = cleanH(document.getElementById('repHInizio').value);
@@ -252,36 +244,26 @@
         const dataFine = document.getElementById('repDataFine').value;
         const giorni = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
         if(!testo || !dataFine || giorni.length === 0) return alert("Dati mancanti!");
-        
         let d = new Date(giornoCorrente);
         while(d <= new Date(dataFine)) {
             if(giorni.includes(d.getDay())) {
                 const iso = d.toISOString().split('T')[0];
-                orariFissi.forEach(h => {
-                    if(cleanH(h) >= hInizio && cleanH(h) <= hFine) {
-                        db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' });
-                    }
-                });
+                orariFissi.forEach(h => { if(cleanH(h) >= hInizio && cleanH(h) <= hFine) db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' }); });
             }
             d.setDate(d.getDate() + 1);
         }
-        alert("Completato!"); closeModal('repModal');
+        alert("Fatto!"); closeModal('repModal');
     }
-
     function pulisciPerParola() {
         const p = document.getElementById('repTesto').value;
         if(!p) return alert("Scrivi una parola!");
         db.ref('agenda').once('value', snap => {
             const data = snap.val() || {};
-            Object.keys(data).forEach(d => Object.keys(data[d]).forEach(id => {
-                if(data[d][id].t && data[d][id].t.includes(p)) db.ref(`agenda/${d}/${id}`).remove();
-            }));
+            Object.keys(data).forEach(d => Object.keys(data[d]).forEach(id => { if(data[d][id].t && data[d][id].t.includes(p)) db.ref(`agenda/${d}/${id}`).remove(); }));
             alert("Pulito!");
         });
     }
-
     function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
-    
     window.onload = initCalendar;
 </script>
 </body>
