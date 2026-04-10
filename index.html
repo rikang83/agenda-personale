@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Funzioni Avanzate</title>
+    <title>Agenda 2026 - Selettore Giorni</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -46,12 +46,17 @@
         .cell-mese { background: white; min-height: 100px; padding: 5px; cursor: pointer; }
         .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* Popups */
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .form-group { margin-bottom: 12px; text-align: left; }
+        .form-group label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+
+        /* Selettore Giorni Settimana */
+        .weekday-selector { display: flex; justify-content: space-between; margin-top: 5px; }
+        .day-check { display: none; }
+        .day-label { width: 35px; height: 35px; border: 1px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .day-check:checked + .day-label { background: var(--r); color: white; border-color: var(--r); }
     </style>
 </head>
 <body>
@@ -95,26 +100,43 @@
 
 <div id="repModal" class="overlay" onclick="closeModal('repModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <h3>Impegno Ripetuto</h3>
+        <h3 style="margin-top:0">Impegno Ripetuto</h3>
+        
         <div class="form-group">
             <label>Cosa scrivere:</label>
-            <input type="text" id="repTesto" placeholder="Es: Ferie, Turno...">
+            <input type="text" id="repTesto" placeholder="Es: Palestra, Turno...">
         </div>
+
+        <div class="form-group">
+            <label>Giorni della settimana:</label>
+            <div class="weekday-selector">
+                <input type="checkbox" id="d1" class="day-check" value="1" checked><label for="d1" class="day-label">LUN</label>
+                <input type="checkbox" id="d2" class="day-check" value="2" checked><label for="d2" class="day-label">MAR</label>
+                <input type="checkbox" id="d3" class="day-check" value="3" checked><label for="d3" class="day-label">MER</label>
+                <input type="checkbox" id="d4" class="day-check" value="4" checked><label for="d4" class="day-label">GIO</label>
+                <input type="checkbox" id="d5" class="day-check" value="5" checked><label for="d5" class="day-label">VEN</label>
+                <input type="checkbox" id="d6" class="day-check" value="6" checked><label for="d6" class="day-label">SAB</label>
+                <input type="checkbox" id="d0" class="day-check" value="0" checked><label for="d0" class="day-label">DOM</label>
+            </div>
+        </div>
+
         <div style="display:flex; gap:10px;">
             <div class="form-group" style="flex:1">
                 <label>Dalle ore:</label>
                 <select id="repHInizio"></select>
             </div>
             <div class="form-group" style="flex:1">
-                <label>Alle ore (Fine):</label>
+                <label>Alle ore:</label>
                 <select id="repHFine"></select>
             </div>
         </div>
+
         <div class="form-group">
             <label>Fino al giorno:</label>
             <input type="date" id="repDataFine">
         </div>
-        <button onclick="eseguiRipetizione()" style="width:100%; padding:15px; background:var(--a); color:white; border:none; border-radius:8px; font-weight:bold;">APPLICA A TUTTI I GIORNI</button>
+
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:15px; background:var(--a); color:white; border:none; border-radius:8px; font-weight:bold; margin-top:10px;">APPLICA A SCADENZA</button>
     </div>
 </div>
 
@@ -134,13 +156,9 @@
             ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m + " 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
             
-            // Popola orari nei select del popup
             const si = document.getElementById('repHInizio');
             const sf = document.getElementById('repHFine');
-            orariFissi.forEach(h => {
-                si.add(new Option(h, h));
-                sf.add(new Option(h, h));
-            });
+            orariFissi.forEach(h => { si.add(new Option(h, h)); sf.add(new Option(h, h)); });
         }
         
         const [y, m] = mp.value.split('-').map(Number);
@@ -235,41 +253,45 @@
         const hInizio = cleanH(document.getElementById('repHInizio').value);
         const hFine = cleanH(document.getElementById('repHFine').value);
         const dataFine = document.getElementById('repDataFine').value;
+        
+        // Recupera giorni selezionati
+        const giorniSelezionati = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
 
-        if(!testo || !dataFine) return alert("Inserisci testo e data fine!");
+        if(!testo || !dataFine) return alert("Dati mancanti!");
+        if(giorniSelezionati.length === 0) return alert("Seleziona almeno un giorno della settimana!");
 
         let dataIntero = new Date(giornoCorrente);
         const limite = new Date(dataFine);
 
         while(dataIntero <= limite) {
-            const iso = dataIntero.toISOString().split('T')[0];
-            orariFissi.forEach(h => {
-                const valH = cleanH(h);
-                if(valH >= hInizio && valH <= hFine) {
-                    const id = "h" + h.replace(":","");
-                    db.ref(`agenda/${iso}/${id}`).update({ h: h, t: testo, c: 'def' });
-                }
-            });
+            // Controlla se il giorno della settimana (0-6) è tra quelli scelti
+            if(giorniSelezionati.includes(dataIntero.getDay())) {
+                const iso = dataIntero.toISOString().split('T')[0];
+                orariFissi.forEach(h => {
+                    const valH = cleanH(h);
+                    if(valH >= hInizio && valH <= hFine) {
+                        const id = "h" + h.replace(":","");
+                        db.ref(`agenda/${iso}/${id}`).update({ h: h, t: testo, c: 'def' });
+                    }
+                });
+            }
             dataIntero.setDate(dataIntero.getDate() + 1);
         }
         closeModal('repModal');
-        alert("Operazione completata!");
+        alert("Appuntamenti ripetuti inseriti!");
     }
 
     function pulisciPerParola() {
-        const parola = prompt("Quale parola vuoi cancellare da tutta l'agenda?");
+        const parola = prompt("CANCELLA PER PAROLA:");
         if(!parola) return;
         db.ref('agenda').once('value', snap => {
             const tutto = snap.val() || {};
             Object.keys(tutto).forEach(data => {
                 Object.keys(tutto[data]).forEach(rigaId => {
-                    if(tutto[data][rigaId].t && tutto[data][rigaId].t.includes(parola)) {
-                        db.ref(`agenda/${data}/${rigaId}`).remove();
-                    }
+                    if(tutto[data][rigaId].t && tutto[data][rigaId].t.includes(parola)) db.ref(`agenda/${data}/${rigaId}`).remove();
                 });
             });
         });
-        alert("Cancellazione completata!");
         closeModal('mainModal');
     }
 
