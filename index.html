@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026 - Fix Definitivo Ordine</title>
+    <title>Agenda Pro 2026 - Stable Version</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
         :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --evidenza: #fffbe6; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; -webkit-tap-highlight-color: transparent; }
         
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
         .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; align-items: center; }
@@ -22,32 +22,31 @@
         input:checked + .slider { background: var(--a); }
         input:checked + .slider:before { transform: translateX(14px); }
 
-        .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; gap: 8px; border-bottom: 1px solid #ddd; scroll-behavior: smooth; }
+        .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; gap: 8px; border-bottom: 1px solid #ddd; }
         .day-item { min-width: 55px; padding: 10px 5px; border-radius: 10px; border: 1px solid #eee; text-align: center; cursor: pointer; background: white; flex-shrink: 0; }
         .day-item.active { background: var(--r) !important; color: white !important; }
         .day-item.holiday { background: var(--festivo) !important; color: white !important; font-weight: bold; }
 
-        .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; }
+        .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
         
         .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 8px; align-items: center; }
         
         .ora-container { width: 85px; }
-        .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
-        .ora-nascondi { visibility: hidden; } /* Nasconde ma mantiene lo spazio */
+        .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); outline: none; }
+        .ora-nascondi { visibility: hidden; } 
         
-        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; }
+        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; outline: none; resize: none; }
         
         /* GRIGLIA MESE */
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border: 1px solid #ccc; }
-        .nome-giorno-mese { background: #eee; padding: 10px 0; text-align: center; font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
-        .cell-mese { background: white; min-height: 100px; padding: 4px; position: relative; cursor: pointer; }
+        .nome-giorno-mese { background: #eee; padding: 10px 0; text-align: center; font-size: 10px; font-weight: bold; color: #555; border-bottom: 1px solid #ccc; }
+        .cell-mese { background: white; min-height: 90px; padding: 4px; cursor: pointer; position: relative; overflow-y: auto; }
         .cell-mese.holiday { background: var(--festivo) !important; color: white !important; }
-        .cell-mese.holiday b { color: white; }
-        .titolo-mese-evidenza { background: var(--evidenza); font-size: 9px; font-weight: bold; padding: 2px; margin-top: 2px; color: #333; border-radius: 2px; text-align: center; border: 1px solid #ffe082; }
+        .titolo-mese-evidenza { background: var(--evidenza); font-size: 8px; font-weight: bold; padding: 2px; margin: 2px 0; color: #333; border-radius: 2px; text-align: center; border: 1px solid #ffe082; }
 
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
-        .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; }
+        .modal-box { background: white; width: 90%; max-width: 350px; padding: 20px; border-radius: 15px; }
         .btn-m { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
@@ -73,14 +72,15 @@
 
 <div id="vistaMese" style="display:none;"><div class="grid-mese" id="gridMese"></div></div>
 
-<div style="position:fixed; bottom:20px; right:20px; z-index:1001;"><button onclick="openModal()" style="width:60px; height:60px; border-radius:50%; background:var(--a); color:white; border:none; font-size:30px; shadow: 0 4px 10px rgba(0,0,0,0.3);">+</button></div>
+<div style="position:fixed; bottom:20px; right:20px; z-index:1001;"><button onclick="openModal()" style="width:60px; height:60px; border-radius:50%; background:var(--a); color:white; border:none; font-size:30px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">+</button></div>
 
 <div id="modalAdd">
     <div class="modal-box">
-        <h3>Azioni Avanzate</h3>
-        <input type="text" id="keySearch" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box" placeholder="Parola chiave (es. Palestra)">
-        <button class="btn-m" style="background:var(--festivo); color:white" onclick="deleteKeyword()">CANCELLA PAROLA CHIAVE</button>
-        <button class="btn-m" style="background:#333; color:white" onclick="resetGiorno()">SVUOTA TUTTO IL GIORNO</button>
+        <h3 style="margin-top:0">Gestione Eventi</h3>
+        <p style="font-size:12px; color:#666">Cerca e cancella parola:</p>
+        <input type="text" id="keySearch" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box" placeholder="Es. Palestra">
+        <button class="btn-m" style="background:var(--festivo); color:white" onclick="deleteKeyword()">ELIMINA TUTTI</button>
+        <button class="btn-m" style="background:#333; color:white" onclick="resetGiorno()">SVUOTA GIORNATA</button>
         <button class="btn-m" style="background:#eee" onclick="closeModal()">CHIUDI</button>
     </div>
 </div>
@@ -105,7 +105,6 @@
         const strip = document.getElementById('strip'); strip.innerHTML = "";
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
         
-        // Fix Nomi Giorni nel Mese
         ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"].forEach(g => {
             const d = document.createElement('div'); d.className="nome-giorno-mese"; d.innerText=g; gm.appendChild(d);
         });
@@ -135,24 +134,30 @@
             db.ref('agenda/'+ds).on('value', s => {
                 const b = document.getElementById('mb-'+ds); if(!b) return; b.innerHTML = "";
                 const val = s.val() || {};
-                // Ordinamento sicuro per il mese
                 Object.values(val).sort((a,b) => cleanH(a.h) - cleanH(b.h)).forEach(v => {
-                    if(v.t) b.innerHTML += `<div style="background:${(colMap[v.c]||colMap.def)[0]}; color:white; font-size:7px; margin-top:1px; padding:1px; border-radius:2px">${v.h}</div>`;
+                    if(v.t) b.innerHTML += `<div style="background:${(colMap[v.c]||colMap.def)[0]}; color:white; font-size:7px; margin-top:2px; padding:1px; border-radius:2px">${v.h}: ${v.t.substring(0,10)}..</div>`;
                 });
             });
         }
         const oggi = new Date().toISOString().split('T')[0];
         const startDay = oggi.startsWith(mp.value) ? oggi : `${y}-${String(m).padStart(2,'0')}-01`;
-        selectDay(startDay);
-        setTimeout(() => { document.getElementById("s-"+startDay)?.scrollIntoView({behavior:"smooth",inline:"center"}); }, 500);
+        selectDay(startDay, true);
     }
 
-    function cleanH(h) { return parseInt(h.replace(/[^0-9]/g, "")) || 9999; }
+    function cleanH(h) { 
+        if(!h || h === "") return 9999;
+        let num = h.replace(/[^0-9]/g, ""); 
+        return num ? parseInt(num.substring(0,4)) : 9999;
+    }
 
-    function selectDay(d) {
+    function selectDay(d, first = false) {
         currentDay = d;
         document.querySelectorAll('.day-item').forEach(x => x.classList.remove('active'));
-        document.getElementById('s-'+d)?.classList.add('active');
+        const el = document.getElementById('s-'+d);
+        if(el) {
+            el.classList.add('active');
+            if(first) el.scrollIntoView({behavior:"auto", inline:"center"});
+        }
         db.ref('titoli/'+d).once('value', s => document.getElementById('dayTitle').value = s.val() || "");
         db.ref('agenda/'+d).on('value', s => { localData = s.val() || {}; renderAgenda(); });
     }
@@ -161,25 +166,25 @@
         const grid = document.getElementById('grid');
         const showOrariSwitch = document.getElementById('baseToggle').checked;
         if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
-        grid.innerHTML = "";
         
         let pool = {...localData};
+        // Assicura che gli orari base esistano nel pool di rendering
         oreBase.forEach(o => {
             const id = "b_"+o.replace(":","");
             if(!pool[id]) pool[id] = {h:o, t:"", c:"def"};
         });
 
-        // ORDINAMENTO RIGOROSO CRONOLOGICO
+        // Ordinamento per orario numerico
         const sorted = Object.keys(pool).sort((a,b) => cleanH(pool[a].h) - cleanH(pool[b].h));
 
+        let html = "";
         sorted.forEach(id => {
             const v = pool[id];
             const c = colMap[v.c] || colMap.def;
-            
-            // LOGICA FIX ORARIO: Se c'è testo è SEMPRE visibile. Se è vuoto segue lo switch.
+            // Mostra orario se c'è testo OPPURE se lo switch è attivo
             const oraVisibile = (v.t.trim() !== "" || showOrariSwitch) ? "" : "ora-nascondi";
 
-            grid.innerHTML += `
+            html += `
             <div class="slot" style="border-left-color:${c[0]}">
                 <div class="slot-main">
                     <div class="ora-container">
@@ -193,6 +198,7 @@
                 </div>
             </div>`;
         });
+        grid.innerHTML = html;
     }
 
     function salva(id, h, t) {
@@ -201,7 +207,8 @@
             const old = s.val() || {h:"", t:"", c:"def"};
             const nh = h !== null ? h : old.h;
             const nt = t !== null ? t : old.t;
-            ref.update({h: nh, t: nt, c: old.c || 'def'});
+            // Salvataggio anche se h è vuoto per evitare sparizioni
+            ref.update({h: nh || "", t: nt || "", c: old.c || 'def'});
         });
     }
 
@@ -212,14 +219,18 @@
             if(localData[id].t.toLowerCase().includes(k)) db.ref(`agenda/${currentDay}/${id}`).remove();
         });
         closeModal();
+        document.getElementById('keySearch').value = "";
     }
 
-    function resetGiorno() { if(confirm("Svuota tutto oggi?")) { db.ref('agenda/'+currentDay).remove(); db.ref('titoli/'+currentDay).remove(); closeModal(); } }
-    function pulisciTesti() { if(confirm("Cancella solo i testi?")) { Object.keys(localData).forEach(id => db.ref(`agenda/${currentDay}/${id}/t`).set("")); } }
+    function resetGiorno() { if(confirm("Cancellare tutto oggi?")) { db.ref('agenda/'+currentDay).remove(); db.ref('titoli/'+currentDay).remove(); closeModal(); } }
+    function pulisciTesti() { if(confirm("Cancellare solo i testi?")) { Object.keys(localData).forEach(id => db.ref(`agenda/${currentDay}/${id}/t`).set("")); } }
     function colora(id, c) { db.ref(`agenda/${currentDay}/${id}`).update({c:c}); }
     function salvaTitolo(v) { db.ref('titoli/'+currentDay).set(v); }
-    function del(id) { if(confirm("Elimina?")) db.ref(`agenda/${currentDay}/${id}`).remove(); }
-    function toggleVista(v) { document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; }
+    function del(id) { if(confirm("Eliminare questa riga?")) db.ref(`agenda/${currentDay}/${id}`).remove(); }
+    function toggleVista(v) { 
+        document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; 
+        document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; 
+    }
     function openModal() { document.getElementById('modalAdd').style.display='flex'; }
     function closeModal() { document.getElementById('modalAdd').style.display='none'; }
 
