@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Fix Orari</title>
+    <title>Agenda 2026</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -57,6 +57,7 @@
         <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
         <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
         <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
+        <button class="nav-btn" style="background:#0d47a1; border:none;" onclick="condividiTesto()">CONDIVIDI</button>
         <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">RESET</button>
     </div>
 </div>
@@ -194,14 +195,10 @@
         container.innerHTML = html;
     }
 
-    // FIX: Aggiunto parametro oraDefault per evitare il salto a 0:00
     function salvaCampo(id, campo, valore, oraDefault) {
         const updates = {}; 
         updates[campo] = valore;
-        // Se non esiste ancora l'ora nel DB per questo record, la aggiungiamo ora
-        if (!datiGiorno[id] || !datiGiorno[id].h) {
-            updates["h"] = oraDefault;
-        }
+        if (!datiGiorno[id] || !datiGiorno[id].h) updates["h"] = oraDefault;
         db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
 
@@ -209,6 +206,29 @@
         const updates = { c: c };
         if (!datiGiorno[id] || !datiGiorno[id].h) updates["h"] = oraDefault;
         db.ref(`agenda/${giornoCorrente}/${id}`).update(updates); 
+    }
+
+    function condividiTesto() {
+        const titolo = document.getElementById('titoloGiorno').value || "Agenda";
+        let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
+        
+        const impegni = Object.values(datiGiorno)
+            .filter(item => item.t && item.t.trim() !== "")
+            .sort((a,b) => cleanH(a.h) - cleanH(b.h));
+
+        if(impegni.length === 0) {
+            messaggio += "Nessun impegno in programma.";
+        } else {
+            impegni.forEach(item => {
+                messaggio += `• *${item.h}*: ${item.t}\n`;
+            });
+        }
+
+        if (navigator.share) {
+            navigator.share({ title: 'Agenda ' + giornoCorrente, text: messaggio });
+        } else {
+            prompt("Copia gli appuntamenti:", messaggio);
+        }
     }
 
     function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
