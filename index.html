@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Ultra Stabile</title>
+    <title>Agenda 2026 - Funzioni Avanzate</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -31,9 +31,8 @@
         
         .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 10px; align-items: center; }
-        
-        .ora-box { width: 75px; flex-shrink: 0; transition: width 0.3s, opacity 0.3s; overflow: hidden; }
-        .ora-box.hidden { width: 0; opacity: 0; margin-right: -10px; }
+        .ora-box { width: 75px; flex-shrink: 0; transition: width 0.3s, opacity 0.3s; }
+        .ora-box.hidden { width: 0; opacity: 0; overflow: hidden; }
         
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; resize: none; outline: none; }
@@ -44,11 +43,15 @@
 
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
         .nome-giorno { background: #f8f9fa; text-align: center; font-size: 11px; padding: 10px 0; font-weight: bold; }
-        .cell-mese { background: white; min-height: 100px; padding: 5px; cursor: pointer; overflow-y: auto; }
+        .cell-mese { background: white; min-height: 100px; padding: 5px; cursor: pointer; }
         .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
-        .modal-box { background: white; width: 85%; padding: 20px; border-radius: 15px; text-align: center; }
+        /* Popups */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -58,16 +61,14 @@
     <div class="nav-buttons">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
-        
+        <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI</button>
         <div class="master-switch">
             RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label>
         </div>
-        
         <div class="master-switch">
             ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label>
         </div>
-        
-        <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal()">RESET</button>
+        <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">RESET</button>
     </div>
 </div>
 
@@ -84,11 +85,36 @@
     <div class="grid-mese" id="corpoMese"></div>
 </div>
 
-<div id="modal" onclick="closeModal()">
+<div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
         <h3>Manutenzione</h3>
-        <button onclick="pulisciTesti()" style="width:100%; padding:15px; margin-bottom:10px; background:#eee; border:none; border-radius:8px; font-weight:bold;">CANCELLA TESTI</button>
-        <button onclick="pulisciTutto()" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET TOTALE</button>
+        <button onclick="pulisciTesti()" style="width:100%; padding:15px; margin-bottom:10px; background:#eee; border:none; border-radius:8px; font-weight:bold;">CANCELLA TESTI DI OGGI</button>
+        <button onclick="pulisciPerParola()" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">CANCELLA PER PAROLA CHIAVE</button>
+    </div>
+</div>
+
+<div id="repModal" class="overlay" onclick="closeModal('repModal')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h3>Impegno Ripetuto</h3>
+        <div class="form-group">
+            <label>Cosa scrivere:</label>
+            <input type="text" id="repTesto" placeholder="Es: Ferie, Turno...">
+        </div>
+        <div style="display:flex; gap:10px;">
+            <div class="form-group" style="flex:1">
+                <label>Dalle ore:</label>
+                <select id="repHInizio"></select>
+            </div>
+            <div class="form-group" style="flex:1">
+                <label>Alle ore (Fine):</label>
+                <select id="repHFine"></select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Fino al giorno:</label>
+            <input type="date" id="repDataFine">
+        </div>
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:15px; background:var(--a); color:white; border:none; border-radius:8px; font-weight:bold;">APPLICA A TUTTI I GIORNI</button>
     </div>
 </div>
 
@@ -107,7 +133,16 @@
         if(!mp.options.length) {
             ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m + " 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+            
+            // Popola orari nei select del popup
+            const si = document.getElementById('repHInizio');
+            const sf = document.getElementById('repHFine');
+            orariFissi.forEach(h => {
+                si.add(new Option(h, h));
+                sf.add(new Option(h, h));
+            });
         }
+        
         const [y, m] = mp.value.split('-').map(Number);
         const strip = document.getElementById('strip'); strip.innerHTML = "";
         const corpo = document.getElementById('corpoMese'); corpo.innerHTML = "";
@@ -137,14 +172,14 @@
                 const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
                 const data = s.val() || {};
                 Object.values(data).sort((a,b)=> cleanH(a.h)-cleanH(b.h)).forEach(v => {
-                    if(v.t && v.t.trim() !== "") box.innerHTML += `<div class="item-mese" style="background:${colMap[v.c]?.[0] || colMap.def[0]}">${v.h} ${v.t}</div>`;
+                    if(v.t) box.innerHTML += `<div class="item-mese" style="background:${colMap[v.c]?.[0] || colMap.def[0]}">${v.h} ${v.t}</div>`;
                 });
             });
         }
         selezionaGiorno(new Date().toISOString().split('T')[0], true);
     }
 
-    function cleanH(h) { return parseInt((h||"").replace(":","")) || 9999; }
+    function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
 
     function selezionaGiorno(data, scroll = false) {
         giornoCorrente = data;
@@ -154,13 +189,8 @@
             att.classList.add('active');
             if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"});
         }
-        db.ref('titoli/'+data).once('value', s => {
-            document.getElementById('titoloGiorno').value = s.val() || "";
-        });
-        db.ref('agenda/'+data).on('value', s => { 
-            datiGiorno = s.val() || {}; 
-            renderGiorno(); 
-        });
+        db.ref('titoli/'+data).once('value', s => document.getElementById('titoloGiorno').value = s.val() || "");
+        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
     }
 
     function renderGiorno() {
@@ -168,36 +198,29 @@
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
         
-        // Evita refresh se sto scrivendo
         if (document.activeElement.tagName === "TEXTAREA") return;
 
         let pool = {...datiGiorno};
         orariFissi.forEach(h => {
             const id = "h" + h.replace(":","");
-            if(!pool[id]) pool[id] = {h: h, t: "", c: "def"};
+            if(!Object.values(pool).some(v => v.h === h)) pool[id] = {h: h, t: "", c: "def"};
         });
 
         let html = "";
-        const sortedKeys = Object.keys(pool).sort((a,b) => cleanH(pool[a].h) - cleanH(pool[b].h));
-        
-        sortedKeys.forEach(id => {
+        Object.keys(pool).sort((a,b) => cleanH(pool[a].h) - cleanH(pool[b].h)).forEach(id => {
             const item = pool[id];
-            const haTesto = item.t && item.t.trim() !== "";
-            
-            if(haTesto || mostraTutteRighe) {
+            if(item.t || mostraTutteRighe) {
                 html += `
                 <div class="slot" style="border-left-color:${colMap[item.c]?.[0] || colMap.def[0]}">
                     <div class="slot-main">
                         <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
                             <input type="text" class="ora-input" value="${item.h}" onchange="salva('${id}', this.value, null)">
                         </div>
-                        <textarea class="nota-input" id="area-${id}" onchange="salva('${id}', null, this.value)">${item.t}</textarea>
+                        <textarea class="nota-input" onchange="salva('${id}', null, this.value)">${item.t}</textarea>
                     </div>
                     <div class="color-dots">
                         ${Object.keys(colMap).filter(k=>k!='def').map(k => `
-                            <div class="dot ${item.c===k?'active':''}" 
-                                 style="background:${colMap[k][0]}" 
-                                 onclick="cambiaColore('${id}','${k}')">${colMap[k][1]}</div>
+                            <div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${id}','${k}')">${colMap[k][1]}</div>
                         `).join('')}
                         <button onclick="del('${id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
                     </div>
@@ -207,30 +230,75 @@
         container.innerHTML = html;
     }
 
+    function eseguiRipetizione() {
+        const testo = document.getElementById('repTesto').value;
+        const hInizio = cleanH(document.getElementById('repHInizio').value);
+        const hFine = cleanH(document.getElementById('repHFine').value);
+        const dataFine = document.getElementById('repDataFine').value;
+
+        if(!testo || !dataFine) return alert("Inserisci testo e data fine!");
+
+        let dataIntero = new Date(giornoCorrente);
+        const limite = new Date(dataFine);
+
+        while(dataIntero <= limite) {
+            const iso = dataIntero.toISOString().split('T')[0];
+            orariFissi.forEach(h => {
+                const valH = cleanH(h);
+                if(valH >= hInizio && valH <= hFine) {
+                    const id = "h" + h.replace(":","");
+                    db.ref(`agenda/${iso}/${id}`).update({ h: h, t: testo, c: 'def' });
+                }
+            });
+            dataIntero.setDate(dataIntero.getDate() + 1);
+        }
+        closeModal('repModal');
+        alert("Operazione completata!");
+    }
+
+    function pulisciPerParola() {
+        const parola = prompt("Quale parola vuoi cancellare da tutta l'agenda?");
+        if(!parola) return;
+        db.ref('agenda').once('value', snap => {
+            const tutto = snap.val() || {};
+            Object.keys(tutto).forEach(data => {
+                Object.keys(tutto[data]).forEach(rigaId => {
+                    if(tutto[data][rigaId].t && tutto[data][rigaId].t.includes(parola)) {
+                        db.ref(`agenda/${data}/${rigaId}`).remove();
+                    }
+                });
+            });
+        });
+        alert("Cancellazione completata!");
+        closeModal('mainModal');
+    }
+
     function salva(id, h, t) {
         const ref = db.ref(`agenda/${giornoCorrente}/${id}`);
         ref.once('value', s => {
             const v = s.val() || {};
-            const updateData = {
-                h: h !== null ? h : (v.h || (id.startsWith('h') ? id.substring(1,3)+":"+id.substring(3,5) : "00:00")),
+            ref.update({
+                h: h !== null ? h : (v.h || id.substring(1,3)+":"+id.substring(3,5)),
                 t: t !== null ? t : (v.t || ""),
                 c: v.c || 'def'
-            };
-            ref.set(updateData);
+            });
         });
     }
 
     function cambiaColore(id, c) { db.ref(`agenda/${giornoCorrente}/${id}`).update({c: c}); }
-    function del(id) { if(confirm("Eliminare la riga?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
+    function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
     function toggleVista(v) { 
         document.getElementById('vGiorno').style.display = v==='g'?'block':'none';
         document.getElementById('vMese').style.display = v==='m'?'block':'none';
     }
-    function openModal() { document.getElementById('modal').style.display='flex'; }
-    function closeModal() { document.getElementById('modal').style.display='none'; }
-    function pulisciTesti() { Object.keys(datiGiorno).forEach(id => db.ref(`agenda/${giornoCorrente}/${id}/t`).set("")); closeModal(); }
-    function pulisciTutto() { db.ref('agenda/'+giornoCorrente).remove(); db.ref('titoli/'+giornoCorrente).remove(); closeModal(); }
+    function openModal(id) { document.getElementById(id).style.display='flex'; }
+    function openRepModal() {
+        document.getElementById('repDataFine').value = giornoCorrente;
+        openModal('repModal');
+    }
+    function closeModal(id) { document.getElementById(id).style.display='none'; }
+    function pulisciTesti() { Object.keys(datiGiorno).forEach(id => db.ref(`agenda/${giornoCorrente}/${id}/t`).set("")); closeModal('mainModal'); }
 
     window.onload = initCalendar;
 </script>
