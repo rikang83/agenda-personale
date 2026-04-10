@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Selettore Giorni</title>
+    <title>Agenda 2026 - Smart Cleanup</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -31,7 +31,7 @@
         
         .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 10px; align-items: center; }
-        .ora-box { width: 75px; flex-shrink: 0; transition: width 0.3s, opacity 0.3s; }
+        .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { width: 0; opacity: 0; overflow: hidden; }
         
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
@@ -41,22 +41,21 @@
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
         .dot.active { border-color: #333; transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
-        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
-        .nome-giorno { background: #f8f9fa; text-align: center; font-size: 11px; padding: 10px 0; font-weight: bold; }
-        .cell-mese { background: white; min-height: 100px; padding: 5px; cursor: pointer; }
-        .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; }
         .form-group { margin-bottom: 12px; text-align: left; }
         .form-group label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
 
-        /* Selettore Giorni Settimana */
         .weekday-selector { display: flex; justify-content: space-between; margin-top: 5px; }
         .day-check { display: none; }
         .day-label { width: 35px; height: 35px; border: 1px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .day-check:checked + .day-label { background: var(--r); color: white; border-color: var(--r); }
+
+        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
+        .nome-giorno { background: #f8f9fa; text-align: center; font-size: 11px; padding: 10px 0; font-weight: bold; }
+        .cell-mese { background: white; min-height: 100px; padding: 5px; cursor: pointer; }
+        .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -66,7 +65,7 @@
     <div class="nav-buttons">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
-        <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI</button>
+        <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
         <div class="master-switch">
             RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label>
         </div>
@@ -92,31 +91,31 @@
 
 <div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <h3>Manutenzione</h3>
+        <h3>Manutenzione Giorno</h3>
         <button onclick="pulisciTesti()" style="width:100%; padding:15px; margin-bottom:10px; background:#eee; border:none; border-radius:8px; font-weight:bold;">CANCELLA TESTI DI OGGI</button>
-        <button onclick="pulisciPerParola()" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">CANCELLA PER PAROLA CHIAVE</button>
+        <button onclick="pulisciTuttoGiorno()" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET TOTALE OGGI</button>
     </div>
 </div>
 
 <div id="repModal" class="overlay" onclick="closeModal('repModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <h3 style="margin-top:0">Impegno Ripetuto</h3>
+        <h3 style="margin-top:0">Gestione Avanzata</h3>
         
         <div class="form-group">
-            <label>Cosa scrivere:</label>
-            <input type="text" id="repTesto" placeholder="Es: Palestra, Turno...">
+            <label>Testo impegno o Parola chiave:</label>
+            <input type="text" id="repTesto" placeholder="Es: Palestra, Ferie...">
         </div>
 
         <div class="form-group">
-            <label>Giorni della settimana:</label>
+            <label>Seleziona Giorni (Iniziano deselezionati):</label>
             <div class="weekday-selector">
-                <input type="checkbox" id="d1" class="day-check" value="1" checked><label for="d1" class="day-label">LUN</label>
-                <input type="checkbox" id="d2" class="day-check" value="2" checked><label for="d2" class="day-label">MAR</label>
-                <input type="checkbox" id="d3" class="day-check" value="3" checked><label for="d3" class="day-label">MER</label>
-                <input type="checkbox" id="d4" class="day-check" value="4" checked><label for="d4" class="day-label">GIO</label>
-                <input type="checkbox" id="d5" class="day-check" value="5" checked><label for="d5" class="day-label">VEN</label>
-                <input type="checkbox" id="d6" class="day-check" value="6" checked><label for="d6" class="day-label">SAB</label>
-                <input type="checkbox" id="d0" class="day-check" value="0" checked><label for="d0" class="day-label">DOM</label>
+                <input type="checkbox" id="d1" class="day-check" value="1"><label for="d1" class="day-label">LUN</label>
+                <input type="checkbox" id="d2" class="day-check" value="2"><label for="d2" class="day-label">MAR</label>
+                <input type="checkbox" id="d3" class="day-check" value="3"><label for="d3" class="day-label">MER</label>
+                <input type="checkbox" id="d4" class="day-check" value="4"><label for="d4" class="day-label">GIO</label>
+                <input type="checkbox" id="d5" class="day-check" value="5"><label for="d5" class="day-label">VEN</label>
+                <input type="checkbox" id="d6" class="day-check" value="6"><label for="d6" class="day-label">SAB</label>
+                <input type="checkbox" id="d0" class="day-check" value="0"><label for="d0" class="day-label">DOM</label>
             </div>
         </div>
 
@@ -136,7 +135,11 @@
             <input type="date" id="repDataFine">
         </div>
 
-        <button onclick="eseguiRipetizione()" style="width:100%; padding:15px; background:var(--a); color:white; border:none; border-radius:8px; font-weight:bold; margin-top:10px;">APPLICA A SCADENZA</button>
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:12px; background:var(--a); color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px;">APPLICA RIPETIZIONE</button>
+        
+        <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+        
+        <button onclick="pulisciPerParola()" style="width:100%; padding:12px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">CANCELLA TUTTO PER PAROLA</button>
     </div>
 </div>
 
@@ -155,36 +158,28 @@
         if(!mp.options.length) {
             ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m + " 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-            
             const si = document.getElementById('repHInizio');
             const sf = document.getElementById('repHFine');
             orariFissi.forEach(h => { si.add(new Option(h, h)); sf.add(new Option(h, h)); });
         }
-        
         const [y, m] = mp.value.split('-').map(Number);
         const strip = document.getElementById('strip'); strip.innerHTML = "";
         const corpo = document.getElementById('corpoMese'); corpo.innerHTML = "";
-
-        let primo = new Date(y, m-1, 1).getDay();
-        if(primo === 0) primo = 7;
+        let primo = new Date(y, m-1, 1).getDay(); if(primo === 0) primo = 7;
         for(let s=1; s<primo; s++) corpo.innerHTML += `<div class="cell-mese" style="background:#f9f9f9"></div>`;
-
         for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
             const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const fest = new Date(iso).getDay() === 0;
-
             const ds = document.createElement('div');
             ds.className = `day-item ${fest?'holiday':''}`; ds.id = "st-"+iso;
             ds.innerHTML = `<small>${["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][new Date(iso).getDay()]}</small><br><b>${d}</b>`;
             ds.onclick = () => selezionaGiorno(iso);
             strip.appendChild(ds);
-
             const dc = document.createElement('div');
             dc.className = `cell-mese ${fest?'holiday':''}`;
             dc.innerHTML = `<b>${d}</b><div id="m-tit-${iso}" style="font-size:8px; font-weight:bold; color:var(--p)"></div><div id="m-list-${iso}"></div>`;
             dc.onclick = () => { toggleVista('g'); selezionaGiorno(iso); };
             corpo.appendChild(dc);
-
             db.ref('titoli/'+iso).on('value', s => { if(document.getElementById('m-tit-'+iso)) document.getElementById('m-tit-'+iso).innerText = s.val() || ""; });
             db.ref('agenda/'+iso).on('value', s => {
                 const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
@@ -203,10 +198,7 @@
         giornoCorrente = data;
         document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
         const att = document.getElementById('st-'+data);
-        if(att) {
-            att.classList.add('active');
-            if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"});
-        }
+        if(att) { att.classList.add('active'); if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"}); }
         db.ref('titoli/'+data).once('value', s => document.getElementById('titoloGiorno').value = s.val() || "");
         db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
     }
@@ -215,15 +207,12 @@
         const container = document.getElementById('listaImpegni');
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
-        
         if (document.activeElement.tagName === "TEXTAREA") return;
-
         let pool = {...datiGiorno};
         orariFissi.forEach(h => {
             const id = "h" + h.replace(":","");
             if(!Object.values(pool).some(v => v.h === h)) pool[id] = {h: h, t: "", c: "def"};
         });
-
         let html = "";
         Object.keys(pool).sort((a,b) => cleanH(pool[a].h) - cleanH(pool[b].h)).forEach(id => {
             const item = pool[id];
@@ -253,53 +242,53 @@
         const hInizio = cleanH(document.getElementById('repHInizio').value);
         const hFine = cleanH(document.getElementById('repHFine').value);
         const dataFine = document.getElementById('repDataFine').value;
-        
-        // Recupera giorni selezionati
         const giorniSelezionati = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
 
-        if(!testo || !dataFine) return alert("Dati mancanti!");
-        if(giorniSelezionati.length === 0) return alert("Seleziona almeno un giorno della settimana!");
+        if(!testo || !dataFine || giorniSelezionati.length === 0) return alert("Compila testo, data fine e seleziona i giorni!");
 
         let dataIntero = new Date(giornoCorrente);
         const limite = new Date(dataFine);
-
         while(dataIntero <= limite) {
-            // Controlla se il giorno della settimana (0-6) è tra quelli scelti
             if(giorniSelezionati.includes(dataIntero.getDay())) {
                 const iso = dataIntero.toISOString().split('T')[0];
                 orariFissi.forEach(h => {
                     const valH = cleanH(h);
                     if(valH >= hInizio && valH <= hFine) {
-                        const id = "h" + h.replace(":","");
-                        db.ref(`agenda/${iso}/${id}`).update({ h: h, t: testo, c: 'def' });
+                        db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' });
                     }
                 });
             }
             dataIntero.setDate(dataIntero.getDate() + 1);
         }
+        alert("Ripetizione completata!");
         closeModal('repModal');
-        alert("Appuntamenti ripetuti inseriti!");
     }
 
     function pulisciPerParola() {
-        const parola = prompt("CANCELLA PER PAROLA:");
-        if(!parola) return;
+        const parola = document.getElementById('repTesto').value;
+        if(!parola) return alert("Scrivi la parola chiave nel campo testo sopra!");
+        if(!confirm(`Vuoi cancellare TUTTE le voci che contengono "${parola}" dall'agenda?`)) return;
+        
         db.ref('agenda').once('value', snap => {
             const tutto = snap.val() || {};
+            let contatore = 0;
             Object.keys(tutto).forEach(data => {
-                Object.keys(tutto[data]).forEach(rigaId => {
-                    if(tutto[data][rigaId].t && tutto[data][rigaId].t.includes(parola)) db.ref(`agenda/${data}/${rigaId}`).remove();
+                Object.keys(tutto[data]).forEach(id => {
+                    if(tutto[data][id].t && tutto[data][id].t.includes(parola)) {
+                        db.ref(`agenda/${data}/${id}`).remove();
+                        contatore++;
+                    }
                 });
             });
+            alert(`Pulizia completata! Rimosse ${contatore} voci.`);
         });
-        closeModal('mainModal');
+        closeModal('repModal');
     }
 
     function salva(id, h, t) {
-        const ref = db.ref(`agenda/${giornoCorrente}/${id}`);
-        ref.once('value', s => {
+        db.ref(`agenda/${giornoCorrente}/${id}`).once('value', s => {
             const v = s.val() || {};
-            ref.update({
+            db.ref(`agenda/${giornoCorrente}/${id}`).update({
                 h: h !== null ? h : (v.h || id.substring(1,3)+":"+id.substring(3,5)),
                 t: t !== null ? t : (v.t || ""),
                 c: v.c || 'def'
@@ -317,10 +306,13 @@
     function openModal(id) { document.getElementById(id).style.display='flex'; }
     function openRepModal() {
         document.getElementById('repDataFine').value = giornoCorrente;
+        // Reset checkbox dei giorni ogni volta che si apre
+        document.querySelectorAll('.day-check').forEach(cb => cb.checked = false);
         openModal('repModal');
     }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
     function pulisciTesti() { Object.keys(datiGiorno).forEach(id => db.ref(`agenda/${giornoCorrente}/${id}/t`).set("")); closeModal('mainModal'); }
+    function pulisciTuttoGiorno() { db.ref('agenda/'+giornoCorrente).remove(); db.ref('titoli/'+giornoCorrente).remove(); closeModal('mainModal'); }
 
     window.onload = initCalendar;
 </script>
