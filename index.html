@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026 - Final Stable</title>
+    <title>Agenda 2026 - Recovery Version</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -33,12 +33,12 @@
 
         #vistaMese { display: none; padding: 5px; }
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
-        .cell-mese { background: white; min-height: 95px; padding: 4px; cursor: pointer; font-size: 11px; overflow: hidden; }
-        .mese-title-tag { background: #fff9c4; color: #827717; font-size: 8px; padding: 2px; border-radius: 2px; margin-bottom: 2px; border: 1px solid #fbc02d; white-space: nowrap; overflow: hidden; }
-        .mese-app-tag { color: white; padding: 1px 2px; font-size: 8px; border-radius: 2px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; }
+        .cell-mese { background: white; min-height: 100px; padding: 4px; cursor: pointer; font-size: 11px; }
+        .mese-title-tag { background: #fff9c4; color: #827717; font-size: 8px; padding: 2px; border-radius: 2px; margin-bottom: 2px; border: 1px solid #fbc02d; }
+        .mese-app-tag { color: white; padding: 1px 2px; font-size: 8px; border-radius: 2px; margin-bottom: 1px; }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; }
-        .tool-btn { width: 55px; height: 55px; border-radius: 50%; border: none; color: white; font-size: 30px; background: var(--a); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .tool-btn { width: 55px; height: 55px; border-radius: 50%; border: none; color: white; font-size: 30px; background: var(--a); }
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 85%; padding: 20px; border-radius: 20px; }
     </style>
@@ -72,13 +72,12 @@
         <h3>Nuovo Orario</h3>
         <input type="time" id="newOra" value="09:00">
         <textarea id="newTesto" rows="2" style="width:100%; margin:10px 0;" placeholder="Note..."></textarea>
-        <button onclick="salvaDalModal()" style="width:100%; padding:12px; background:var(--a); color:white; border:none; border-radius:8px;">AGGIUNGI</button>
+        <button onclick="salvaDalModal()" style="width:100%; padding:12px; background:var(--a); color:white; border:none; border-radius:8px;">SALVA</button>
         <button onclick="closeModal()" style="width:100%; padding:10px; margin-top:5px; background:#999; color:white; border:none; border-radius:8px;">CHIUDI</button>
     </div>
 </div>
 
 <script>
-    // --- CONFIG FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSy...", 
         databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/",
@@ -108,12 +107,11 @@
         for (let i = 1; i <= lastDay; i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const el = document.createElement('div'); el.className = `day-item ${new Date(ds).getDay()===0?'holiday':''}`; el.id = "day-"+ds;
-            el.innerHTML = `<span>${["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][new Date(ds).getDay()]}</span><b>${i}</b>`;
+            el.innerHTML = `<b>${i}</b>`;
             el.onclick = () => selectDay(ds);
             strip.appendChild(el);
         }
-        let oggi = new Date().toISOString().split('T')[0];
-        selectDay(selectedDate || (oggi.includes(mp.value) ? oggi : `${y}-${String(m).padStart(2,'0')}-01`));
+        selectDay(selectedDate || `${y}-${String(m).padStart(2,'0')}-01`);
         renderMese(y, m);
     }
 
@@ -122,47 +120,46 @@
         document.querySelectorAll('.day-item').forEach(d => d.classList.remove('active'));
         if(document.getElementById("day-"+dStr)) document.getElementById("day-"+dStr).classList.add('active');
 
-        // Ascolto Titolo
-        db.ref('titoli/' + dStr).on('value', s => { 
-            if (document.activeElement.id !== 'dayTitleInput') {
-                document.getElementById('dayTitleInput').value = s.val() || ""; 
-            }
-        });
+        // Caricamento Titolo
+        db.ref('titoli/' + dStr).once('value', s => { document.getElementById('dayTitleInput').value = s.val() || ""; });
 
-        // Ascolto Agenda
+        // Caricamento Agenda con AGGIORNAMENTO DINAMICO
         db.ref('agenda/' + dStr).on('value', snap => {
-            // Se l'utente sta scrivendo, non ricarichiamo la grafica per non perdere il cursore
-            if (document.activeElement.classList.contains('nota-input') || document.activeElement.classList.contains('ora-input')) return;
+            if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
 
             const dati = snap.val() || {};
             const grid = document.getElementById('gridOraria');
             grid.innerHTML = "";
             
+            // 1. Creiamo mappa base
             let mappa = {};
-            // 1. Prepariamo gli orari base
             oreBase.forEach(o => { 
-                let cleanID = "id_" + o.replace(":", "");
-                mappa[cleanID] = {h:o, t:"", c:"def", id:cleanID}; 
+                let id = "id_" + o.replace(":",""); 
+                mappa[id] = { h:o, t:"", c:"def", id:id }; 
             });
-            // 2. Carichiamo i dati dal DB (filtrando solo quelli validi)
-            Object.keys(dati).forEach(k => { 
-                if(dati[k] && dati[k].h) {
-                    mappa[k] = {...dati[k], id:k}; 
+
+            // 2. Integriamo dati DB e RIPARIAMO ID ORMAI CORROTTI
+            Object.keys(dati).forEach(k => {
+                const item = dati[k];
+                if (item && item.h) {
+                    // Se l'ID è strano (es. un numero o un orario nudo), lo mappiamo sull'ID corretto
+                    let targetID = k.includes("id_") ? k : "id_" + item.h.replace(":","");
+                    mappa[targetID] = { ...item, id: targetID };
                 }
             });
 
-            // 3. Generiamo la vista
+            // 3. Renderizziamo
             Object.values(mappa).sort((a,b)=>a.h.localeCompare(b.h)).forEach(v => {
                 const c = colMap[v.c] || colMap.def;
                 grid.innerHTML += `
-                <div class="slot" style="border-left-color:${c[0]}" id="slot-${v.id}">
+                <div class="slot" style="border-left-color:${c[0]}" id="s-${v.id}">
                     <div class="slot-main">
-                        <input type="text" class="ora-input" value="${v.h}" oninput="debounceSave('${v.id}', this.value, null)">
-                        <textarea class="nota-input" oninput="debounceSave('${v.id}', null, this.value)">${v.t}</textarea>
+                        <input type="text" class="ora-input" value="${v.h}" onblur="salvaDato('${v.id}', this.value, null)">
+                        <textarea class="nota-input" onblur="salvaDato('${v.id}', null, this.value)">${v.t}</textarea>
                     </div>
                     <div class="dots">
-                        ${Object.entries(colMap).filter(x=>x[0]!='def').map(([key,val])=>`
-                            <div class="dot" style="background:${val[0]}" onclick="cambiaColore('${v.id}','${key}')">${val[1]}</div>
+                        ${Object.entries(colMap).filter(x=>x[0]!='def').map(([k,val])=>`
+                            <div class="dot" style="background:${val[0]}" onclick="cambiaColore('${v.id}','${k}')">${val[1]}</div>
                         `).join('')}
                         <div class="dot" style="background:#eee;color:#999" onclick="elimina('${v.id}')">×</div>
                     </div>
@@ -171,30 +168,23 @@
         });
     }
 
-    function debounceSave(id, ora, testo) {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => {
-            const ref = db.ref('agenda/' + selectedDate + '/' + id);
-            ref.once('value').then(s => {
-                const d = s.val() || { h: "", t: "", c: "def" };
-                ref.update({
-                    h: ora !== null ? ora : d.h,
-                    t: testo !== null ? testo : d.t,
-                    c: d.c
-                });
+    function salvaDato(id, ora, testo) {
+        const ref = db.ref('agenda/' + selectedDate + '/' + id);
+        ref.once('value').then(s => {
+            const d = s.val() || { h: "", t: "", c: "def" };
+            ref.update({
+                h: ora !== null ? ora : (d.h || ""),
+                t: testo !== null ? testo : (d.t || ""),
+                c: d.c || "def"
             });
-        }, 800);
+        });
     }
 
-    function cambiaColore(id, colore_key) {
-        db.ref('agenda/' + selectedDate + '/' + id).update({ c: colore_key });
-        // L'ascoltatore 'on' aggiornerà la grafica automaticamente se non stai scrivendo
+    function cambiaColore(id, colore) {
+        db.ref('agenda/' + selectedDate + '/' + id).update({ c: colore });
     }
 
-    function salvaTitolo(v) {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => { db.ref('titoli/' + selectedDate).set(v); }, 800);
-    }
+    function salvaTitolo(v) { db.ref('titoli/' + selectedDate).set(v); }
 
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
@@ -204,11 +194,7 @@
             cell.innerHTML = `<b>${i}</b><div id="tm-${ds}"></div><div id="am-${ds}"></div>`;
             cell.onclick = () => { switchView('giorno'); selectDay(ds); };
             gm.appendChild(cell);
-            
-            db.ref('titoli/'+ds).on('value', s => { 
-                const div = document.getElementById("tm-"+ds);
-                if(div) div.innerHTML = s.val() ? `<div class="mese-title-tag">${s.val()}</div>` : ""; 
-            });
+            db.ref('titoli/'+ds).on('value', s => { if(document.getElementById("tm-"+ds)) document.getElementById("tm-"+ds).innerHTML = s.val() ? `<div class="mese-title-tag">${s.val()}</div>` : ""; });
             db.ref('agenda/'+ds).on('value', s => { 
                 const d = s.val() || {};
                 const div = document.getElementById("am-"+ds);
@@ -217,35 +203,22 @@
         }
     }
 
-    function switchView(v) { 
-        document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; 
-        document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; 
-    }
-    
+    function switchView(v) { document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; }
     function openModal() { document.getElementById('modalAdd').style.display='flex'; }
     function closeModal() { document.getElementById('modalAdd').style.display='none'; }
-
     function salvaDalModal() {
         const h = document.getElementById('newOra').value;
-        const t = document.getElementById('newTesto').value;
-        if(!h) return alert("Ora mancante");
-        const id = "custom_" + Date.now();
-        db.ref('agenda/'+selectedDate+'/'+id).set({ h: h, t: t, c: 'def' }).then(() => {
+        const id = "id_" + h.replace(":","");
+        db.ref('agenda/'+selectedDate+'/'+id).set({ h: h, t: document.getElementById('newTesto').value, c: 'def' }).then(() => {
             closeModal();
-            document.getElementById('newTesto').value = "";
         });
     }
-
-    function elimina(id) { if(confirm("Eliminare?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
-    
-    function resetOrari() { if(confirm("Svuotare tutto?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
-    
+    function elimina(id) { if(confirm("Elimina?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
+    function resetOrari() { if(confirm("Resetta?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
     function ripristinaBase() { 
-        if(confirm("Ripristinare orari base?")) { 
-            const obj = {}; 
-            oreBase.forEach(o => { let id = "id_" + o.replace(":",""); obj[id] = {h:o, t:"", c:"def"}; });
-            db.ref('agenda/'+selectedDate).set(obj);
-        } 
+        const obj = {}; 
+        oreBase.forEach(o => { let id = "id_" + o.replace(":",""); obj[id] = {h:o, t:"", c:"def"}; });
+        db.ref('agenda/'+selectedDate).set(obj);
     }
     window.onload = initCalendar;
 </script>
