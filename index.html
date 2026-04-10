@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Smart Cleanup</title>
+    <title>Agenda 2026 - Coerenza Grafica</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --evidenza: #fffbe6; }
+        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --festivo-dark: #b71c1c; --evidenza: #fffbe6; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
         
+        /* Header */
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
         .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 6px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; }
@@ -22,10 +23,12 @@
         input:checked + .slider { background: var(--a); }
         input:checked + .slider:before { transform: translateX(14px); }
 
+        /* Giorno */
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; gap: 8px; border-bottom: 1px solid #ddd; }
         .day-item { min-width: 55px; padding: 10px 5px; border-radius: 10px; border: 1px solid #eee; text-align: center; cursor: pointer; background: white; flex-shrink: 0; }
         .day-item.active { background: var(--r) !important; color: white !important; }
         .day-item.holiday { background: #ffebee !important; color: var(--festivo) !important; font-weight: bold; }
+        .day-item.nat-holiday { background: #ffcdd2 !important; color: var(--festivo-dark) !important; border: 1px solid var(--festivo); }
 
         .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
         
@@ -33,29 +36,63 @@
         .slot-main { display: flex; gap: 10px; align-items: center; }
         .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { width: 0; opacity: 0; overflow: hidden; }
-        
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; resize: none; outline: none; }
         
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
-        .dot.active { border-color: #333; transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .dot.active { border-color: #333; transform: scale(1.1); }
 
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
-        .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; }
-        .form-group { margin-bottom: 12px; text-align: left; }
-        .form-group label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-
-        .weekday-selector { display: flex; justify-content: space-between; margin-top: 5px; }
-        .day-check { display: none; }
-        .day-label { width: 35px; height: 35px; border: 1px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .day-check:checked + .day-label { background: var(--r); color: white; border-color: var(--r); }
-
+        /* Mese */
         .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
         .nome-giorno { background: #f8f9fa; text-align: center; font-size: 11px; padding: 10px 0; font-weight: bold; }
-        .cell-mese { background: white; min-height: 100px; padding: 5px; cursor: pointer; }
+        .cell-mese { background: white; min-height: 120px; padding: 4px; cursor: pointer; position: relative; overflow: hidden; }
+        .cell-mese.holiday { background: #ffebee; }
+        .cell-mese.nat-holiday { background: #ffcdd2; }
+        
+        .btn-del-mese { position: absolute; top: 2px; right: 2px; background: none; border: none; font-size: 12px; cursor: pointer; opacity: 0.3; z-index: 5; }
+        .cell-mese:hover .btn-del-mese { opacity: 1; }
+
+        /* Titolo nel mese evidenziato */
+        .m-titolo-box { 
+            background: var(--evidenza); 
+            font-size: 9px; 
+            font-weight: bold; 
+            color: #b8860b; 
+            text-align: center; 
+            padding: 3px 2px; 
+            margin: 4px 0; 
+            border-bottom: 1px solid #ffe082; 
+            min-height: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
         .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fest-label { font-size: 7px; color: var(--festivo-dark); font-weight: bold; display: block; margin-top: 1px; }
+
+        /* Popups */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
+        .weekday-selector { display: flex; justify-content: space-between; margin: 10px 0; }
+        .day-check { display: none; }
+        .day-label { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; cursor: pointer; border: 2px solid transparent; }
+        .day-check:checked + .day-label { color: white; transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        label[for="d1"] { background: #e3f2fd; color: #1976d2; } 
+        label[for="d2"] { background: #f3e5f5; color: #7b1fa2; }
+        label[for="d3"] { background: #e8f5e9; color: #388e3c; }
+        label[for="d4"] { background: #fff3e0; color: #f57c00; }
+        label[for="d5"] { background: #e0f2f1; color: #00796b; }
+        label[for="d6"] { background: #ede7f6; color: #512da8; }
+        label[for="d0"] { background: #ffebee; color: #c62828; }
+        .day-check:checked + label[for="d1"] { background: #1976d2; }
+        .day-check:checked + label[for="d2"] { background: #7b1fa2; }
+        .day-check:checked + label[for="d3"] { background: #388e3c; }
+        .day-check:checked + label[for="d4"] { background: #f57c00; }
+        .day-check:checked + label[for="d5"] { background: #00796b; }
+        .day-check:checked + label[for="d6"] { background: #512da8; }
+        .day-check:checked + label[for="d0"] { background: #c62828; }
     </style>
 </head>
 <body>
@@ -66,12 +103,8 @@
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
         <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
-        <div class="master-switch">
-            RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label>
-        </div>
-        <div class="master-switch">
-            ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label>
-        </div>
+        <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
+        <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
         <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">RESET</button>
     </div>
 </div>
@@ -93,53 +126,30 @@
     <div class="modal-box" onclick="event.stopPropagation()">
         <h3>Manutenzione Giorno</h3>
         <button onclick="pulisciTesti()" style="width:100%; padding:15px; margin-bottom:10px; background:#eee; border:none; border-radius:8px; font-weight:bold;">CANCELLA TESTI DI OGGI</button>
-        <button onclick="pulisciTuttoGiorno()" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET TOTALE OGGI</button>
+        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET TOTALE OGGI</button>
     </div>
 </div>
 
 <div id="repModal" class="overlay" onclick="closeModal('repModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <h3 style="margin-top:0">Gestione Avanzata</h3>
-        
-        <div class="form-group">
-            <label>Testo impegno o Parola chiave:</label>
-            <input type="text" id="repTesto" placeholder="Es: Palestra, Ferie...">
+        <h3 style="margin-top:0; text-align:center;">Gestione Avanzata</h3>
+        <input type="text" id="repTesto" placeholder="Es: Palestra, Lavoro..." style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+        <div class="weekday-selector">
+            <input type="checkbox" id="d1" class="day-check" value="1"><label for="d1" class="day-label">LUN</label>
+            <input type="checkbox" id="d2" class="day-check" value="2"><label for="d2" class="day-label">MAR</label>
+            <input type="checkbox" id="d3" class="day-check" value="3"><label for="d3" class="day-label">MER</label>
+            <input type="checkbox" id="d4" class="day-check" value="4"><label for="d4" class="day-label">GIO</label>
+            <input type="checkbox" id="d5" class="day-check" value="5"><label for="d5" class="day-label">VEN</label>
+            <input type="checkbox" id="d6" class="day-check" value="6"><label for="d6" class="day-label">SAB</label>
+            <input type="checkbox" id="d0" class="day-check" value="0"><label for="d0" class="day-label">DOM</label>
         </div>
-
-        <div class="form-group">
-            <label>Seleziona Giorni (Iniziano deselezionati):</label>
-            <div class="weekday-selector">
-                <input type="checkbox" id="d1" class="day-check" value="1"><label for="d1" class="day-label">LUN</label>
-                <input type="checkbox" id="d2" class="day-check" value="2"><label for="d2" class="day-label">MAR</label>
-                <input type="checkbox" id="d3" class="day-check" value="3"><label for="d3" class="day-label">MER</label>
-                <input type="checkbox" id="d4" class="day-check" value="4"><label for="d4" class="day-label">GIO</label>
-                <input type="checkbox" id="d5" class="day-check" value="5"><label for="d5" class="day-label">VEN</label>
-                <input type="checkbox" id="d6" class="day-check" value="6"><label for="d6" class="day-label">SAB</label>
-                <input type="checkbox" id="d0" class="day-check" value="0"><label for="d0" class="day-label">DOM</label>
-            </div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <select id="repHInizio" style="flex:1; padding:10px; border-radius:8px;"></select>
+            <select id="repHFine" style="flex:1; padding:10px; border-radius:8px;"></select>
         </div>
-
-        <div style="display:flex; gap:10px;">
-            <div class="form-group" style="flex:1">
-                <label>Dalle ore:</label>
-                <select id="repHInizio"></select>
-            </div>
-            <div class="form-group" style="flex:1">
-                <label>Alle ore:</label>
-                <select id="repHFine"></select>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Fino al giorno:</label>
-            <input type="date" id="repDataFine">
-        </div>
-
-        <button onclick="eseguiRipetizione()" style="width:100%; padding:12px; background:var(--a); color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px;">APPLICA RIPETIZIONE</button>
-        
-        <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-        
-        <button onclick="pulisciPerParola()" style="width:100%; padding:12px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">CANCELLA TUTTO PER PAROLA</button>
+        <input type="date" id="repDataFine" style="width:100%; padding:12px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:14px; background:var(--a); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">APPLICA RIPETIZIONE</button>
+        <button onclick="pulisciPerParola()" style="width:100%; padding:14px; background:var(--festivo); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:10px;">CANCELLA PER PAROLA</button>
     </div>
 </div>
 
@@ -153,13 +163,14 @@
     const orariFissi = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
 
+    const festivi2026 = { "01-01":"Capodanno", "01-06":"Epifania", "04-05":"Pasqua", "04-06":"Pasquetta", "04-25":"Liberazione", "05-01":"Festa Lavoro", "06-02":"Festa Rep.", "08-15":"Ferragosto", "11-01":"Ognissanti", "12-08":"Immacolata", "12-25":"Natale", "12-26":"S. Stefano" };
+
     function initCalendar() {
         const mp = document.getElementById('monthPicker');
         if(!mp.options.length) {
-            ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m + " 2026", `2026-${String(i+1).padStart(2,'0')}`)));
+            ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m+" 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-            const si = document.getElementById('repHInizio');
-            const sf = document.getElementById('repHFine');
+            const si = document.getElementById('repHInizio'); const sf = document.getElementById('repHFine');
             orariFissi.forEach(h => { si.add(new Option(h, h)); sf.add(new Option(h, h)); });
         }
         const [y, m] = mp.value.split('-').map(Number);
@@ -169,18 +180,24 @@
         for(let s=1; s<primo; s++) corpo.innerHTML += `<div class="cell-mese" style="background:#f9f9f9"></div>`;
         for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
             const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const fest = new Date(iso).getDay() === 0;
+            const festClass = festivi2026[iso.substring(5)] ? 'nat-holiday' : (new Date(iso).getDay()===0 ? 'holiday' : '');
             const ds = document.createElement('div');
-            ds.className = `day-item ${fest?'holiday':''}`; ds.id = "st-"+iso;
+            ds.className = `day-item ${festClass}`; ds.id = "st-"+iso;
             ds.innerHTML = `<small>${["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][new Date(iso).getDay()]}</small><br><b>${d}</b>`;
             ds.onclick = () => selezionaGiorno(iso);
             strip.appendChild(ds);
             const dc = document.createElement('div');
-            dc.className = `cell-mese ${fest?'holiday':''}`;
-            dc.innerHTML = `<b>${d}</b><div id="m-tit-${iso}" style="font-size:8px; font-weight:bold; color:var(--p)"></div><div id="m-list-${iso}"></div>`;
-            dc.onclick = () => { toggleVista('g'); selezionaGiorno(iso); };
+            dc.className = `cell-mese ${festClass}`;
+            dc.innerHTML = `<button class="btn-del-mese" onclick="pulisciTuttoGiorno('${iso}', event)">🗑️</button>
+                <b>${d}</b><span class="fest-label">${festivi2026[iso.substring(5)]||""}</span>
+                <div id="m-tit-${iso}" class="m-titolo-box"></div>
+                <div id="m-list-${iso}"></div>`;
+            dc.onclick = (e) => { if(e.target.tagName !== 'BUTTON') { toggleVista('g'); selezionaGiorno(iso); } };
             corpo.appendChild(dc);
-            db.ref('titoli/'+iso).on('value', s => { if(document.getElementById('m-tit-'+iso)) document.getElementById('m-tit-'+iso).innerText = s.val() || ""; });
+            db.ref('titoli/'+iso).on('value', s => { 
+                const el = document.getElementById('m-tit-'+iso); 
+                if(el) { el.innerText = s.val() || ""; el.style.display = s.val() ? "block" : "none"; } 
+            });
             db.ref('agenda/'+iso).on('value', s => {
                 const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
                 const data = s.val() || {};
@@ -193,7 +210,6 @@
     }
 
     function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
-
     function selezionaGiorno(data, scroll = false) {
         giornoCorrente = data;
         document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
@@ -209,110 +225,68 @@
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
         if (document.activeElement.tagName === "TEXTAREA") return;
         let pool = {...datiGiorno};
-        orariFissi.forEach(h => {
-            const id = "h" + h.replace(":","");
-            if(!Object.values(pool).some(v => v.h === h)) pool[id] = {h: h, t: "", c: "def"};
-        });
+        orariFissi.forEach(h => { if(!Object.values(pool).some(v => v.h === h)) pool["h"+h.replace(":","")] = {h: h, t: "", c: "def"}; });
         let html = "";
         Object.keys(pool).sort((a,b) => cleanH(pool[a].h) - cleanH(pool[b].h)).forEach(id => {
             const item = pool[id];
             if(item.t || mostraTutteRighe) {
-                html += `
-                <div class="slot" style="border-left-color:${colMap[item.c]?.[0] || colMap.def[0]}">
+                html += `<div class="slot" style="border-left-color:${colMap[item.c]?.[0] || colMap.def[0]}">
                     <div class="slot-main">
-                        <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
-                            <input type="text" class="ora-input" value="${item.h}" onchange="salva('${id}', this.value, null)">
-                        </div>
+                        <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}"><input type="text" class="ora-input" value="${item.h}" onchange="salva('${id}', this.value, null)"></div>
                         <textarea class="nota-input" onchange="salva('${id}', null, this.value)">${item.t}</textarea>
                     </div>
                     <div class="color-dots">
-                        ${Object.keys(colMap).filter(k=>k!='def').map(k => `
-                            <div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${id}','${k}')">${colMap[k][1]}</div>
-                        `).join('')}
+                        ${Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${id}','${k}')">${colMap[k][1]}</div>`).join('')}
                         <button onclick="del('${id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
-                    </div>
-                </div>`;
+                    </div></div>`;
             }
         });
         container.innerHTML = html;
     }
 
+    function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare il giorno ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
     function eseguiRipetizione() {
         const testo = document.getElementById('repTesto').value;
         const hInizio = cleanH(document.getElementById('repHInizio').value);
         const hFine = cleanH(document.getElementById('repHFine').value);
         const dataFine = document.getElementById('repDataFine').value;
-        const giorniSelezionati = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
-
-        if(!testo || !dataFine || giorniSelezionati.length === 0) return alert("Compila testo, data fine e seleziona i giorni!");
-
-        let dataIntero = new Date(giornoCorrente);
-        const limite = new Date(dataFine);
-        while(dataIntero <= limite) {
-            if(giorniSelezionati.includes(dataIntero.getDay())) {
-                const iso = dataIntero.toISOString().split('T')[0];
-                orariFissi.forEach(h => {
-                    const valH = cleanH(h);
-                    if(valH >= hInizio && valH <= hFine) {
-                        db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' });
-                    }
-                });
+        const giorni = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
+        if(!testo || !dataFine || giorni.length === 0) return alert("Dati mancanti!");
+        let d = new Date(giornoCorrente);
+        while(d <= new Date(dataFine)) {
+            if(giorni.includes(d.getDay())) {
+                const iso = d.toISOString().split('T')[0];
+                orariFissi.forEach(h => { if(cleanH(h) >= hInizio && cleanH(h) <= hFine) db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' }); });
             }
-            dataIntero.setDate(dataIntero.getDate() + 1);
+            d.setDate(d.getDate() + 1);
         }
-        alert("Ripetizione completata!");
-        closeModal('repModal');
+        alert("Fatto!"); closeModal('repModal');
     }
 
     function pulisciPerParola() {
-        const parola = document.getElementById('repTesto').value;
-        if(!parola) return alert("Scrivi la parola chiave nel campo testo sopra!");
-        if(!confirm(`Vuoi cancellare TUTTE le voci che contengono "${parola}" dall'agenda?`)) return;
-        
+        const p = document.getElementById('repTesto').value;
+        if(!p) return alert("Inserisci parola!");
         db.ref('agenda').once('value', snap => {
-            const tutto = snap.val() || {};
-            let contatore = 0;
-            Object.keys(tutto).forEach(data => {
-                Object.keys(tutto[data]).forEach(id => {
-                    if(tutto[data][id].t && tutto[data][id].t.includes(parola)) {
-                        db.ref(`agenda/${data}/${id}`).remove();
-                        contatore++;
-                    }
-                });
-            });
-            alert(`Pulizia completata! Rimosse ${contatore} voci.`);
+            const data = snap.val() || {};
+            Object.keys(data).forEach(d => Object.keys(data[d]).forEach(id => { if(data[d][id].t && data[d][id].t.includes(p)) db.ref(`agenda/${d}/${id}`).remove(); }));
+            alert("Pulizia completata!");
         });
-        closeModal('repModal');
     }
 
     function salva(id, h, t) {
         db.ref(`agenda/${giornoCorrente}/${id}`).once('value', s => {
             const v = s.val() || {};
-            db.ref(`agenda/${giornoCorrente}/${id}`).update({
-                h: h !== null ? h : (v.h || id.substring(1,3)+":"+id.substring(3,5)),
-                t: t !== null ? t : (v.t || ""),
-                c: v.c || 'def'
-            });
+            db.ref(`agenda/${giornoCorrente}/${id}`).update({ h: h||v.h, t: t!==null?t:v.t||"", c: v.c||'def' });
         });
     }
-
     function cambiaColore(id, c) { db.ref(`agenda/${giornoCorrente}/${id}`).update({c: c}); }
     function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
-    function toggleVista(v) { 
-        document.getElementById('vGiorno').style.display = v==='g'?'block':'none';
-        document.getElementById('vMese').style.display = v==='m'?'block':'none';
-    }
+    function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
     function openModal(id) { document.getElementById(id).style.display='flex'; }
-    function openRepModal() {
-        document.getElementById('repDataFine').value = giornoCorrente;
-        // Reset checkbox dei giorni ogni volta che si apre
-        document.querySelectorAll('.day-check').forEach(cb => cb.checked = false);
-        openModal('repModal');
-    }
+    function openRepModal() { document.getElementById('repDataFine').value = giornoCorrente; document.querySelectorAll('.day-check').forEach(cb => cb.checked = false); openModal('repModal'); }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
     function pulisciTesti() { Object.keys(datiGiorno).forEach(id => db.ref(`agenda/${giornoCorrente}/${id}/t`).set("")); closeModal('mainModal'); }
-    function pulisciTuttoGiorno() { db.ref('agenda/'+giornoCorrente).remove(); db.ref('titoli/'+giornoCorrente).remove(); closeModal('mainModal'); }
 
     window.onload = initCalendar;
 </script>
