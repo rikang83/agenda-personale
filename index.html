@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026 - Versione Definitiva</title>
+    <title>Agenda Pro 2026 - Fix Totale</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -34,16 +34,17 @@
         
         .ora-container { width: 85px; }
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
+        /* Classe per l'ora nascosta solo se la riga è vuota */
         .ora-hidden { visibility: hidden; }
         
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; }
         
-        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
-        .cell-mese { background: white; min-height: 100px; padding: 4px; position: relative; cursor: pointer; border: 1px solid #eee; }
+        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; border: 2px solid #ccc; }
+        .header-mese { background: #eee; text-align: center; font-size: 11px; padding: 8px 0; font-weight: bold; color: #333; }
+        .cell-mese { background: white; min-height: 100px; padding: 4px; position: relative; cursor: pointer; }
         .cell-mese.holiday { background: var(--festivo) !important; color: white !important; }
         .cell-mese.holiday b { color: white; }
-        /* Titolo nel mese con evidenziatore */
-        .titolo-mese-box { background: var(--evidenza); font-size: 9px; font-weight: bold; padding: 2px; margin-top: 2px; color: #333; border-radius: 2px; }
+        .titolo-mese-box { background: var(--evidenza); font-size: 9px; font-weight: bold; padding: 2px; margin-top: 2px; color: #333; border-radius: 2px; text-align: center; }
 
         #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 15px; max-height: 80vh; overflow-y: auto; }
@@ -78,19 +79,18 @@
     <div class="modal-box">
         <h3 style="margin-top:0">Gestione Impegni</h3>
         <div style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
-            <p style="font-size: 12px; margin: 0 0 5px 0;">NUOVO APPUNTAMENTO:</p>
+            <p style="font-size: 11px; margin: 0 0 5px 0;">NUOVO APPUNTAMENTO:</p>
             <input type="time" id="mInizio" value="09:00"> a <input type="time" id="mFine" value="10:00">
             <textarea id="mTesto" rows="3" style="width:100%; margin:10px 0; padding:10px; box-sizing: border-box;" placeholder="Cosa devi fare?"></textarea>
             <button class="btn-modal" style="background:var(--a); color:white" onclick="salvaModal()">AGGIUNGI</button>
         </div>
         
         <div style="background: #fff5f5; padding: 10px; border-radius: 8px;">
-            <p style="font-size: 12px; margin: 0 0 5px 0; color: var(--festivo);">CANCELLAZIONE AVANZATA:</p>
-            <input type="text" id="keySearch" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px; box-sizing: border-box;" placeholder="Parola chiave (es: Palestra)">
-            <button class="btn-modal" style="background:var(--festivo); color:white" onclick="deleteByKey()">CANCELLA PER PAROLA CHIAVE</button>
+            <p style="font-size: 11px; margin: 0 0 5px 0; color: var(--festivo);">AZIONI RAPIDE:</p>
+            <input type="text" id="keySearch" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px; box-sizing: border-box;" placeholder="Parola (es: Palestra)">
+            <button class="btn-modal" style="background:var(--festivo); color:white" onclick="deleteByKey()">ELIMINA PER PAROLA CHIAVE</button>
             <button class="btn-modal" style="background:#333; color:white" onclick="resetInteroGiorno()">SVUOTA TUTTO IL GIORNO</button>
         </div>
-        
         <button class="btn-modal" style="background:#eee" onclick="closeModal()">CHIUDI</button>
     </div>
 </div>
@@ -102,7 +102,6 @@
     
     let currentDay = "";
     let localData = {};
-    // Gli orari base ora hanno un peso fisso (ordine)
     const oreBase = [
         {h:"09:00", p:10}, {h:"09:30", p:15}, {h:"10:00", p:20}, {h:"10:30", p:25}, 
         {h:"11:00", p:30}, {h:"11:30", p:35}, {h:"12:00", p:40}, {h:"12:30", p:45}, 
@@ -121,6 +120,15 @@
         const strip = document.getElementById('strip'); strip.innerHTML = "";
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
         
+        // REINSERIMENTO NOMI GIORNI SETTIMANA
+        ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"].forEach(g => {
+            const h = document.createElement('div'); h.className = "header-mese"; h.innerText = g; gm.appendChild(h);
+        });
+
+        let firstPos = new Date(y, m-1, 1).getDay();
+        if(firstPos === 0) firstPos = 7;
+        for(let s=1; s<firstPos; s++) gm.innerHTML += `<div class="cell-mese" style="background:#f9f9f9"></div>`;
+
         for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const isSun = new Date(ds).getDay() === 0;
@@ -137,11 +145,10 @@
 
             db.ref('titoli/'+ds).on('value', s => { 
                 const el = document.getElementById('mt-'+ds);
-                el.innerText = s.val() || "";
-                el.style.display = s.val() ? 'block' : 'none';
+                if(el) { el.innerText = s.val() || ""; el.style.display = s.val() ? 'block' : 'none'; }
             });
             db.ref('agenda/'+ds).on('value', s => {
-                const b = document.getElementById('mb-'+ds); b.innerHTML = "";
+                const b = document.getElementById('mb-'+ds); if(!b) return; b.innerHTML = "";
                 const val = s.val() || {};
                 Object.values(val).forEach(v => { if(v.t) b.innerHTML += `<div style="background:${(colMap[v.c]||colMap.def)[0]}; color:white; font-size:7px; margin-top:1px; padding:1px; border-radius:2px">${v.h}</div>`; });
             });
@@ -162,29 +169,30 @@
 
     function renderAgenda() {
         const grid = document.getElementById('grid');
-        const showOrari = document.getElementById('baseToggle').checked;
+        const showOrariMaster = document.getElementById('baseToggle').checked;
         if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
         grid.innerHTML = "";
         
         let pool = {...localData};
-        // Garantiamo la presenza degli orari base con il loro PESO (p)
         oreBase.forEach(o => {
             const id = "b_"+o.h.replace(":","");
             if(!pool[id]) pool[id] = {h:o.h, t:"", c:"def", p:o.p};
-            else if(!pool[id].p) db.ref(`agenda/${currentDay}/${id}/p`).set(o.p); // Fix per vecchi dati senza peso
         });
 
-        // ORDINAMENTO PER PESO (p), NON PER ORARIO SCRITTO!
         const sorted = Object.keys(pool).sort((a,b) => (pool[a].p || 999) - (pool[b].p || 999));
 
         sorted.forEach(id => {
             const v = pool[id];
             const c = colMap[v.c] || colMap.def;
+            
+            // LOGICA FIX: Mostra orario se lo switch è ON OPPURE se c'è del testo scritto
+            const visibile = (showOrariMaster || v.t.trim() !== "") ? "" : "ora-hidden";
+
             grid.innerHTML += `
             <div class="slot" style="border-left-color:${c[0]}">
                 <div class="slot-main">
                     <div class="ora-container">
-                        <input type="text" class="ora-input ${showOrari?'':'ora-hidden'}" value="${v.h}" onblur="salva('${id}', this.value, null)">
+                        <input type="text" class="ora-input ${visibile}" value="${v.h}" onblur="salva('${id}', this.value, null)">
                     </div>
                     <textarea class="nota-input" onblur="salva('${id}', null, this.value)">${v.t}</textarea>
                 </div>
@@ -202,7 +210,6 @@
             const old = s.val() || {};
             const nh = h !== null ? h : (old.h || "");
             const nt = t !== null ? t : (old.t || "");
-            // Se è una riga base e non ha peso, lo assegniamo ora
             let peso = old.p;
             if(!peso && id.startsWith('b_')) {
                 const base = oreBase.find(x => "b_"+x.h.replace(":","") === id);
@@ -222,15 +229,15 @@
                 count++;
             }
         });
-        alert(`Eliminati ${count} elementi.`);
+        alert(`Eliminati ${count} elementi con la parola "${key}"`);
         closeModal();
     }
 
-    function resetInteroGiorno() { if(confirm("Vuoi svuotare TUTTO il giorno?")) { db.ref('agenda/'+currentDay).remove(); db.ref('titoli/'+currentDay).remove(); closeModal(); } }
-    function resetTestiSolo() { if(confirm("Vuoi cancellare solo i testi?")) { Object.keys(localData).forEach(id => db.ref(`agenda/${currentDay}/${id}/t`).set("")); } }
+    function resetInteroGiorno() { if(confirm("Svuotare TUTTO il giorno?")) { db.ref('agenda/'+currentDay).remove(); db.ref('titoli/'+currentDay).remove(); closeModal(); } }
+    function resetTestiSolo() { if(confirm("Cancellare solo i testi?")) { Object.keys(localData).forEach(id => db.ref(`agenda/${currentDay}/${id}/t`).set("")); } }
     function colora(id, c) { db.ref(`agenda/${currentDay}/${id}`).update({c:c}); }
     function salvaTitolo(v) { db.ref('titoli/'+currentDay).set(v); }
-    function del(id) { if(confirm("Elimina?")) db.ref(`agenda/${currentDay}/${id}`).remove(); }
+    function del(id) { if(confirm("Elimina riga?")) db.ref(`agenda/${currentDay}/${id}`).remove(); }
     function toggleVista(v) { document.getElementById('vistaGiorno').style.display = v==='giorno'?'block':'none'; document.getElementById('vistaMese').style.display = v==='mese'?'block':'none'; }
     function openModal() { document.getElementById('modalAdd').style.display='flex'; }
     function closeModal() { document.getElementById('modalAdd').style.display='none'; }
