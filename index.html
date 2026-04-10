@@ -3,75 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda Pro 2026</title>
+    <title>Agenda Pro 2026 - Fixed</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        :root { --bg: #f0f2f5; --p: #1a237e; --r: #2196f3; --a: #4caf50; --d: #ff9800; --v: #ffeb3b; --festivo: #d32f2f; }
+        :root { --bg: #f0f2f5; --p: #1a237e; --r: #2196f3; --a: #4caf50; --d: #ff9800; --v: #fbc02d; --festivo: #d32f2f; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; overflow-x: hidden; }
-        
-        /* HEADER */
         .header { background: var(--p); color: white; padding: 15px 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
-        .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
         #monthPicker { background: white; border: 2px solid var(--r); padding: 10px; border-radius: 8px; font-weight: bold; color: var(--p); font-size: 18px; width: 85%; }
-
-        /* VISTA GIORNO */
-        .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        
+        .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; border-bottom: 1px solid #ddd; gap: 10px; scroll-behavior: smooth; }
         .day-item { min-width: 60px; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #eee; cursor: pointer; flex-shrink: 0; background: #fff; }
-        .day-item b { font-size: 1.3rem; }
         .day-item.holiday { background: var(--festivo); color: white; border-color: var(--festivo); }
-        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
         .day-title-container { padding: 10px; background: #fff; margin-bottom: 10px; }
-        .day-title-input { width: 100%; border: 2px dashed #ccc; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; color: var(--p); box-sizing: border-box; text-align: center; background: #fffbe6; }
+        .day-title-input { width: 100%; border: 2px dashed #ccc; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; background: #fffbe6; box-sizing: border-box; }
 
         .content { padding: 10px; padding-bottom: 100px; }
         .slot { background: white; margin-bottom: 12px; padding: 12px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 10px solid #ddd; }
         .slot-main { display: flex; gap: 10px; }
-        .ora-input { width: 90px; border: none; font-weight: bold; color: var(--p); background: #f0f4f8; padding: 8px; border-radius: 6px; text-align: center; }
+        .ora-input { width: 80px; border: none; font-weight: bold; color: var(--p); background: #f0f4f8; padding: 8px; border-radius: 6px; text-align: center; font-size: 14px; }
         .nota-input { flex: 1; border: none; font-size: 16px; padding: 10px; background: #f8f9fa; border-radius: 8px; resize: none; min-height: 40px; }
-
-        /* VISTA MESE - OTTIMIZZATA */
-        #vistaMese { display: none; padding: 5px; background: #fff; }
-        .header-mese { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 12px; padding: 10px 0; color: #666; }
-        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; border: 1px solid #ccc; }
-        .cell-mese { background: white; min-height: 110px; padding: 4px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
-        .cell-mese b { font-size: 14px; margin-bottom: 4px; display: block; }
-        .cell-mese.holiday b { color: var(--festivo); }
-        
-        /* Etichette nel mese più leggibili */
-        .mese-title-tag { background: #fff9c4; color: #827717; font-size: 9px; font-weight: bold; padding: 2px; border-radius: 3px; border: 1px solid #fbc02d; line-height: 1.1; word-wrap: break-word; }
-        .mese-app-tag { color: white; padding: 2px 3px; font-size: 9px; border-radius: 3px; line-height: 1.2; word-wrap: break-word; font-weight: 500; }
 
         .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .dots { display: flex; gap: 8px; }
-        .dot { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; cursor: pointer; }
+        .dot { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; cursor: pointer; font-size: 12px; }
 
-        #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; }
-        .modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        .btn-action { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        #vistaMese { display: none; padding: 5px; background: #fff; }
+        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ccc; }
+        .cell-mese { background: white; min-height: 100px; padding: 4px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; }
+        .mese-title-tag { background: #fff9c4; color: #827717; font-size: 9px; font-weight: bold; padding: 2px; border-radius: 3px; margin-bottom: 2px; border: 1px solid #fbc02d; }
+        .mese-app-tag { color: white; padding: 2px 3px; font-size: 9px; border-radius: 3px; margin-bottom: 1px; }
 
         .floating-tools { position: fixed; bottom: 20px; right: 20px; z-index: 4000; }
         .tool-btn { width: 60px; height: 60px; border-radius: 50%; border: none; color: white; font-size: 35px; background: var(--a); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        #modalAdd { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; }
     </style>
 </head>
 <body>
-
-<div id="modalAdd">
-    <div class="modal-content">
-        <h3>Nuovo Appuntamento</h3>
-        <input type="time" id="newOraInizio" value="09:00"> a <input type="time" id="newOraFine" value="10:00">
-        <textarea id="newTesto" rows="2" style="width:100%; margin-top:10px" placeholder="Note..."></textarea>
-        <div class="modal-btns">
-            <button class="btn-action" style="background:var(--a); color:white" onclick="salvaDalModal('add')">RIPETI SETTIMANALE</button>
-            <button class="btn-action" style="background:var(--r); color:white" onclick="salvaDalModal('single')">SOLO OGGI</button>
-            <button class="btn-action" style="background:#f44336; color:white" onclick="cancellaInBlocco()">CANCELLA BLOCCO 2026</button>
-            <button class="btn-action" style="background:#999; color:white" onclick="closeModal()">CHIUDI</button>
-        </div>
-    </div>
-</div>
 
 <div class="header">
     <select id="monthPicker" onchange="initCalendar()"></select>
@@ -86,19 +59,29 @@
 <div id="vistaGiorno">
     <div class="calendar-strip" id="calendarStrip"></div>
     <div class="day-title-container">
-        <input type="text" id="dayTitleInput" class="day-title-input" placeholder="TITOLO GIORNATA (es. Ferie...)" onblur="salvaTitolo(this.value)">
+        <input type="text" id="dayTitleInput" class="day-title-input" placeholder="TITOLO GIORNATA (es. Ferie, Turno...)" onblur="salvaTitolo(this.value)">
     </div>
     <div class="content" id="gridOraria"></div>
 </div>
 
 <div id="vistaMese">
-    <div class="header-mese"><div>Lun</div><div>Mar</div><div>Mer</div><div>Gio</div><div>Ven</div><div>Sab</div><div style="color:var(--festivo)">Dom</div></div>
     <div class="grid-mese" id="gridMese"></div>
 </div>
 
 <div class="floating-tools"><button class="tool-btn" onclick="openModal()">+</button></div>
 
+<div id="modalAdd">
+    <div class="modal-content">
+        <h3>Nuovo Appuntamento</h3>
+        <input type="time" id="newOraInizio" value="09:00">
+        <textarea id="newTesto" rows="2" style="width:100%; margin-top:10px" placeholder="Note..."></textarea>
+        <button onclick="salvaDalModal()" style="width:100%; padding:12px; margin-top:10px; background:var(--a); color:white; border:none; border-radius:8px; font-weight:bold;">SALVA</button>
+        <button onclick="closeModal()" style="width:100%; padding:10px; margin-top:5px; background:#999; color:white; border:none; border-radius:8px;">ANNULLA</button>
+    </div>
+</div>
+
 <script>
+    // --- FIREBASE CONFIG (Sostituisci con i tuoi dati) ---
     const firebaseConfig = {
         apiKey: "AIzaSy...", 
         databaseURL: "https://agenda-2026-eceb7-default-rtdb.europe-west1.firebasedatabase.app/",
@@ -110,7 +93,6 @@
     let selectedDate = "";
     const oreBase = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V','#333'], def:['#ddd',''] };
-    const wNames = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
     const festivi2026 = ["2026-01-01", "2026-01-06", "2026-04-05", "2026-04-06", "2026-04-25", "2026-05-01", "2026-06-02", "2026-08-15", "2026-11-01", "2026-12-08", "2026-12-25", "2026-12-26"];
 
     function isHoliday(dateStr) {
@@ -131,10 +113,11 @@
         const [y, m] = mp.value.split('-').map(Number);
         const strip = document.getElementById('calendarStrip'); strip.innerHTML = "";
         const lastDay = new Date(y, m, 0).getDate();
+        const wNames = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
+
         for (let i = 1; i <= lastDay; i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-            const hClass = isHoliday(ds) ? "holiday" : "";
-            const el = document.createElement('div'); el.className = `day-item ${hClass}`; el.id = "day-"+ds;
+            const el = document.createElement('div'); el.className = `day-item ${isHoliday(ds) ? "holiday" : ""}`; el.id = "day-"+ds;
             el.innerHTML = `<span>${wNames[new Date(ds).getDay()]}</span><b>${i}</b>`;
             el.onclick = () => selectDay(ds, false);
             strip.appendChild(el);
@@ -154,66 +137,79 @@
             const container = document.getElementById('calendarStrip');
             container.scrollTo({ left: activeItem.offsetLeft - (container.offsetWidth / 2) + (activeItem.offsetWidth / 2), behavior: 'smooth' });
         }
-        db.ref('titoli/' + dStr).on('value', snap => { document.getElementById('dayTitleInput').value = snap.val() || ""; });
+        
+        db.ref('titoli/' + dStr).once('value', snap => { document.getElementById('dayTitleInput').value = snap.val() || ""; });
+
         db.ref('agenda/' + dStr).on('value', snap => {
             const dati = snap.val() || {};
-            const grid = document.getElementById('gridOraria'); grid.innerHTML = "";
+            const grid = document.getElementById('gridOraria'); 
+            
+            // Creiamo la mappa degli orari
             let mappa = {};
-            oreBase.forEach(o => mappa[o] = {h:o, t:"", c:"def", id:"base_"+o.replace(/:/g,"_")});
-            Object.keys(dati).forEach(k => { mappa[dati[k].h || k] = {...dati[k], id: k}; });
-            Object.values(mappa).sort((a,b)=>String(a.h).localeCompare(String(b.h))).forEach(v => {
-                const c = colMap[v.c] || colMap.def;
-                grid.innerHTML += `
-                <div class="slot" id="slot-${v.id}" style="border-left-color:${c[0]}">
-                    <div class="slot-main">
-                        <input type="text" class="ora-input" value="${v.h}" onblur="salva('${v.id}',this.value,null,null)">
-                        <textarea class="nota-input" onblur="salva('${v.id}',null,this.value,null)">${v.t}</textarea>
-                    </div>
-                    <div class="actions">
-                        <div class="dots">
-                            ${Object.entries(colMap).filter(x=>x[0]!='def').map(([k,val])=>`
-                                <div class="dot" style="background:${val[0]};color:${val[2]||'white'}" onclick="salva('${v.id}',null,null,'${k}')">${val[1]}</div>
-                            `).join('')}
-                            <div class="dot" style="background:#eee;color:#999" onclick="elimina('${v.id}')">×</div>
-                        </div>
-                    </div>
-                </div>`;
+            oreBase.forEach(o => { 
+                let idBase = "base_" + o.replace(":", "_");
+                mappa[idBase] = {h:o, t:"", c:"def", id: idBase}; 
             });
-            if(doScroll) window.scrollTo({top: 0, behavior:'smooth'});
+            Object.keys(dati).forEach(k => { mappa[k] = {...dati[k], id: k}; });
+
+            // Renderizziamo solo se l'utente non sta scrivendo (per evitare saltelli)
+            if (document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'INPUT') {
+                grid.innerHTML = "";
+                Object.values(mappa).sort((a,b)=>a.h.localeCompare(b.h)).forEach(v => {
+                    const c = colMap[v.c] || colMap.def;
+                    grid.innerHTML += `
+                    <div class="slot" style="border-left-color:${c[0]}">
+                        <div class="slot-main">
+                            <input type="text" class="ora-input" value="${v.h}" onblur="salva('${v.id}', this.value, null, null)">
+                            <textarea class="nota-input" onblur="salva('${v.id}', null, this.value, null)">${v.t}</textarea>
+                        </div>
+                        <div class="actions">
+                            <div class="dots">
+                                ${Object.entries(colMap).filter(x=>x[0]!='def').map(([key,val])=>`
+                                    <div class="dot" style="background:${val[0]};color:${val[2]||'white'}" onclick="salva('${v.id}',null,null,'${key}')">${val[1]}</div>
+                                `).join('')}
+                                <div class="dot" style="background:#eee;color:#999" onclick="elimina('${v.id}')">×</div>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            }
+        });
+    }
+
+    function salva(id, ora, testo, colore) {
+        if (!selectedDate) return;
+        const ref = db.ref('agenda/' + selectedDate + '/' + id);
+        ref.once('value').then(s => {
+            const d = s.val() || {};
+            const update = {
+                h: ora !== null ? ora : (d.h || ""),
+                t: testo !== null ? testo : (d.t || ""),
+                c: colore !== null ? colore : (d.c || "def")
+            };
+            ref.update(update);
         });
     }
 
     function salvaTitolo(val) { db.ref('titoli/' + selectedDate).set(val); }
-    function salva(id, ora, testo, colore) {
-        const ref = db.ref('agenda/'+selectedDate+'/'+id);
-        ref.once('value').then(s => {
-            const d = s.val() || {};
-            ref.update({ h: ora||d.h||"", t: testo!==null?testo:(d.t||""), c: colore||d.c||"def" });
-        });
-    }
 
     function renderMese(y, m) {
         const gm = document.getElementById('gridMese'); gm.innerHTML = "";
         const firstDay = new Date(y, m-1, 1).getDay();
         const shift = (firstDay === 0 ? 6 : firstDay - 1); 
         for(let s=0; s<shift; s++) gm.innerHTML += `<div class="cell-mese" style="background:#f0f0f0"></div>`;
-        
         for (let i = 1; i <= new Date(y, m, 0).getDate(); i++) {
             const ds = `${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
             const cell = document.createElement('div'); cell.className = `cell-mese ${isHoliday(ds) ? "holiday" : ""}`;
             cell.innerHTML = `<b>${i}</b><div id="title-m-${ds}"></div><div id="m-${ds}"></div>`;
             cell.onclick = () => { switchView('giorno'); selectDay(ds, true); };
             gm.appendChild(cell);
-            
             db.ref('titoli/' + ds).on('value', s => {
-                const divT = document.getElementById("title-m-"+ds); if(!divT) return;
-                divT.innerHTML = s.val() ? `<div class="mese-title-tag">${s.val()}</div>` : "";
+                const divT = document.getElementById("title-m-"+ds); if(divT) divT.innerHTML = s.val() ? `<div class="mese-title-tag">${s.val()}</div>` : "";
             });
-
             db.ref('agenda/'+ds).on('value', s => {
                 const d = s.val() || {};
-                const div = document.getElementById("m-"+ds); if(!div) return;
-                div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div class="mese-app-tag" style="background:${colMap[x.c][0]};color:${colMap[x.c][2]||'white'}">${x.t}</div>`).join('');
+                const div = document.getElementById("m-"+ds); if(div) div.innerHTML = Object.values(d).filter(x=>x.t).map(x=>`<div class="mese-app-tag" style="background:${colMap[x.c][0]}">${x.t}</div>`).join('');
             });
         }
     }
@@ -223,44 +219,21 @@
         document.getElementById('vistaMese').style.display = v==='mese'?'block':'none';
     }
 
-    function salvaDalModal(tipo) {
-        const h = document.getElementById('newOraInizio').value + " - " + document.getElementById('newOraFine').value;
-        const t = document.getElementById('newTesto').value;
-        const id = "ex_" + Date.now();
-        if(tipo === 'single') {
-            db.ref('agenda/'+selectedDate+'/'+id).set({h:h, t:t, c:'def'});
-        } else {
-            const dOW = new Date(selectedDate).getDay();
-            for(let m=1; m<=12; m++) {
-                let lastD = new Date(2026, m, 0).getDate();
-                for(let d=1; d<=lastD; d++) {
-                    let dIt = new Date(2026, m-1, d);
-                    if(dIt.getDay() === dOW) db.ref(`agenda/2026-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}/${id}`).set({h:h, t:t, c:'def'});
-                }
-            }
-        }
-        closeModal();
-    }
-
-    function cancellaInBlocco() {
-        const testo = document.getElementById('newTesto').value;
-        if(!testo || testo.length < 3) return alert("Testo corto");
-        db.ref('agenda').once('value', snap => {
-            const tutti = snap.val();
-            Object.keys(tutti).forEach(g => {
-                Object.keys(tutti[g]).forEach(id => {
-                    if(tutti[g][id].t && tutti[g][id].t.includes(testo)) db.ref(`agenda/${g}/${id}`).remove();
-                });
-            });
-            closeModal();
-        });
-    }
-
-    function ripristinaBase() { if(confirm("Reset orari?")) { const obj = {}; oreBase.forEach(o => { obj["base_"+o.replace(/:/g,"_")] = {h:o, t:"", c:"def"}; }); db.ref('agenda/'+selectedDate).set(obj); } }
     function openModal() { document.getElementById('modalAdd').style.display='flex'; }
     function closeModal() { document.getElementById('modalAdd').style.display='none'; }
     function elimina(id) { if(confirm("Eliminare?")) db.ref('agenda/'+selectedDate+'/'+id).remove(); }
-    function resetOrari() { if(confirm("Svuotare giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
+    function resetOrari() { if(confirm("Svuotare tutto il giorno?")) { db.ref('agenda/'+selectedDate).remove(); db.ref('titoli/'+selectedDate).remove(); } }
+    function ripristinaBase() { if(confirm("Ripristinare gli orari base?")) { const obj = {}; oreBase.forEach(o => { let id = "base_"+o.replace(":","_"); obj[id] = {h:o, t:"", c:"def"}; }); db.ref('agenda/'+selectedDate).set(obj); } }
+    
+    function salvaDalModal() {
+        const h = document.getElementById('newOraInizio').value;
+        const t = document.getElementById('newTesto').value;
+        const id = "custom_" + Date.now();
+        db.ref('agenda/'+selectedDate+'/'+id).set({h:h, t:t, c:'def'});
+        closeModal();
+        document.getElementById('newTesto').value = "";
+    }
+
     window.onload = initCalendar;
 </script>
 </body>
