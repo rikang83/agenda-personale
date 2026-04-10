@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Recupero Dati</title>
+    <title>Agenda 2026 - Fix Orari</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
@@ -144,7 +144,7 @@
                 const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
                 const data = s.val() || {};
                 Object.values(data).sort((a,b)=> cleanH(a.h)-cleanH(b.h)).forEach(v => {
-                    if(v.t) box.innerHTML += `<div class="item-mese" style="background:${colMap[v.c]?.[0] || colMap.def[0]}">${v.h} ${v.t}</div>`;
+                    if(v.t) box.innerHTML += `<div class="item-mese" style="background:${colMap[v.c]?.[0] || colMap.def[0]}">${v.h || '??'} ${v.t}</div>`;
                 });
             });
         }
@@ -167,17 +167,13 @@
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
         
-        // RECUPERO INTELLIGENTE: Uniamo gli orari fissi con QUALSIASI dato presente nel DB (vecchio o nuovo)
         let visualizzazione = {};
-        // 1. Prepariamo gli orari base
         orariFissi.forEach(h => {
             const id = "h" + h.replace(":", "");
             visualizzazione[id] = { id: id, h: h, t: "", c: "def", sort: cleanH(h) };
         });
-        // 2. Sovrapponiamo i dati reali dal DB
         Object.keys(datiGiorno).forEach(key => {
             const item = datiGiorno[key];
-            // Se è un orario fisso lo aggiorniamo, altrimenti lo aggiungiamo come extra (vecchio dato)
             visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sort: cleanH(item.h) };
         });
 
@@ -186,11 +182,11 @@
             if(item.t || mostraTutteRighe) {
                 html += `<div class="slot" style="border-left-color:${colMap[item.c]?.[0] || colMap.def[0]}">
                     <div class="slot-main">
-                        <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}"><input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value)"></div>
-                        <textarea class="nota-input" onblur="salvaCampo('${item.id}', 't', this.value)">${item.t}</textarea>
+                        <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}"><input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div>
+                        <textarea class="nota-input" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
                     </div>
                     <div class="color-dots">
-                        ${Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}')">${colMap[k][1]}</div>`).join('')}
+                        ${Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join('')}
                         <button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
                     </div></div>`;
             }
@@ -198,11 +194,23 @@
         container.innerHTML = html;
     }
 
-    function salvaCampo(id, campo, valore) {
-        const updates = {}; updates[campo] = valore;
+    // FIX: Aggiunto parametro oraDefault per evitare il salto a 0:00
+    function salvaCampo(id, campo, valore, oraDefault) {
+        const updates = {}; 
+        updates[campo] = valore;
+        // Se non esiste ancora l'ora nel DB per questo record, la aggiungiamo ora
+        if (!datiGiorno[id] || !datiGiorno[id].h) {
+            updates["h"] = oraDefault;
+        }
         db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
-    function cambiaColore(id, c) { db.ref(`agenda/${giornoCorrente}/${id}/c`).set(c); }
+
+    function cambiaColore(id, c, oraDefault) { 
+        const updates = { c: c };
+        if (!datiGiorno[id] || !datiGiorno[id].h) updates["h"] = oraDefault;
+        db.ref(`agenda/${giornoCorrente}/${id}`).update(updates); 
+    }
+
     function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
     function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
