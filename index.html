@@ -165,14 +165,21 @@
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.classList.contains('ora-input')) return;
+        
+        container.innerHTML = ""; // PULIZIA TOTALE PRIMA DI RENDERING
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
         
         let visualizzazione = {};
-        orariFissi.forEach(h => {
-            const id = "h" + h.replace(":", "");
-            visualizzazione[id] = { id: id, h: h, t: "", c: "def", sort: cleanH(h) };
-        });
+        // Carica gli orari fissi solo se richiesto lo switch RIGHE
+        if(mostraTutteRighe) {
+            orariFissi.forEach(h => {
+                const id = "h" + h.replace(":", "");
+                visualizzazione[id] = { id: id, h: h, t: "", c: "def", sort: cleanH(h) };
+            });
+        }
+        
+        // Sovrascrivi o aggiungi con i dati reali da Firebase
         Object.keys(datiGiorno).forEach(key => {
             const item = datiGiorno[key];
             visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sort: cleanH(item.h) };
@@ -180,6 +187,7 @@
 
         let html = "";
         Object.values(visualizzazione).sort((a,b) => a.sort - b.sort).forEach(item => {
+            // Mostra se c'è testo OPPURE se lo switch RIGHE è attivo
             if(item.t || mostraTutteRighe) {
                 html += `<div class="slot" style="border-left-color:${colMap[item.c]?.[0] || colMap.def[0]}">
                     <div class="slot-main">
@@ -211,24 +219,9 @@
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
-        
-        const impegni = Object.values(datiGiorno)
-            .filter(item => item.t && item.t.trim() !== "")
-            .sort((a,b) => cleanH(a.h) - cleanH(b.h));
-
-        if(impegni.length === 0) {
-            messaggio += "Nessun impegno in programma.";
-        } else {
-            impegni.forEach(item => {
-                messaggio += `• *${item.h}*: ${item.t}\n`;
-            });
-        }
-
-        if (navigator.share) {
-            navigator.share({ title: 'Agenda ' + giornoCorrente, text: messaggio });
-        } else {
-            prompt("Copia gli appuntamenti:", messaggio);
-        }
+        const impegni = Object.values(datiGiorno).filter(item => item.t && item.t.trim() !== "").sort((a,b) => cleanH(a.h) - cleanH(b.h));
+        if(impegni.length === 0) { messaggio += "Nessun impegno in programma."; } else { impegni.forEach(item => { messaggio += `• *${item.h}*: ${item.t}\n`; }); }
+        if (navigator.share) { navigator.share({ title: 'Agenda ' + giornoCorrente, text: messaggio }); } else { prompt("Copia gli appuntamenti:", messaggio); }
     }
 
     function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
