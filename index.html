@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 Corretta</title>
+    <title>Agenda 2026 - Versione Stabile</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --festivo-dark: #b71c1c; --evidenza: #fffbe6; }
+        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --evidenza: #fffbe6; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
         .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
@@ -25,7 +25,7 @@
         .day-item.active { background: var(--r) !important; color: white !important; }
         
         .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
-        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
+        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 10px; align-items: flex-start; }
         .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { display: none; }
@@ -34,15 +34,15 @@
         
         /* Layout Admin Gestione Incassi */
         .admin-block { background: #fdfdfd; border: 1px solid #ccc; border-radius: 8px; padding: 12px; margin-top: 5px; }
-        .admin-top-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .admin-grid { display: grid; grid-template-columns: 100px 80px 110px auto; gap: 8px; align-items: center; }
-        .admin-label-head { font-size: 9px; font-weight: 900; color: #1a237e; text-transform: uppercase; }
-        .admin-label-row { font-size: 11px; font-weight: bold; }
-        .input-acconto { width: 65px; border: 1px solid #ccc; padding: 4px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .input-data { width: 95px; border: 1px solid #ccc; padding: 4px; border-radius: 4px; font-size: 12px; }
-        .input-operatore { width: 140px; background: #fffbe6; border: 1px solid #ffe082; padding: 4px; border-radius: 4px; font-weight: bold; }
+        .admin-top-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .admin-grid { display: grid; grid-template-columns: 90px 75px 110px auto; gap: 8px; align-items: center; }
+        .admin-label-head { font-size: 9px; font-weight: 900; color: #1a237e; }
+        .admin-label-row { font-size: 10px; font-weight: bold; color: #444; }
+        .input-acconto { width: 65px; border: 1px solid #ccc; padding: 4px; border-radius: 4px; font-size: 11px; }
+        .input-data { width: 100px; border: 1px solid #ccc; padding: 4px; border-radius: 4px; font-size: 11px; }
+        .input-operatore { width: 140px; background: #fffde7; border: 1px solid #ffd54f; padding: 4px; border-radius: 4px; font-weight: bold; }
         .incasso-dots { display: flex; gap: 3px; }
-        .dot-sm { width: 22px; height: 22px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; cursor: pointer; opacity: 0.3; }
+        .dot-sm { width: 22px; height: 22px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; cursor: pointer; opacity: 0.3; transition: 0.2s; }
         .dot-sm.active { opacity: 1; border: 1px solid #000; transform: scale(1.1); }
 
         .wedding-container { width: 100%; display: flex; flex-direction: column; gap: 5px; }
@@ -52,9 +52,9 @@
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
         .dot.active { border-color: #333; transform: scale(1.1); }
-        .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
+        .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; }
     </style>
 </head>
 <body>
@@ -65,8 +65,8 @@
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
         <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
-        <button class="nav-btn" style="background:#0d47a1; border:none;" onclick="condividiTesto()">CONDIVIDI</button>
-        <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">AZIONI</button>
+        <button class="nav-btn" style="background:#0d47a1;" onclick="condividiTesto()">CONDIVIDI</button>
+        <button class="nav-btn" style="background:var(--festivo);" onclick="openModal('mainModal')">AZIONI</button>
     </div>
 </div>
 
@@ -79,8 +79,8 @@
 
 <div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px;">SCHEMA MATRIMONIO</button>
-        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET GIORNO</button>
+        <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px;">CARICA SCHEMA MATRIMONIO</button>
+        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET GIORNATA</button>
     </div>
 </div>
 
@@ -110,12 +110,7 @@
         if(giornoCorrente) db.ref('agenda/'+giornoCorrente).off();
         giornoCorrente = data;
         db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
-        db.ref('agenda/'+data).on('value', s => { 
-            datiGiorno = s.val() || {}; 
-            if (document.activeElement.tagName !== "TEXTAREA" && document.activeElement.tagName !== "INPUT") {
-                renderGiorno(); 
-            }
-        });
+        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
         
         const [y, m] = data.split('-').map(Number);
         const strip = document.getElementById('strip'); strip.innerHTML = "";
@@ -132,6 +127,7 @@
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
+        if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
         container.innerHTML = "";
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
@@ -144,7 +140,6 @@
             });
         }
         Object.keys(datiGiorno).forEach(k => { visualizzazione[k] = { ...datiGiorno[k], id: k }; });
-
         const sorted = Object.values(visualizzazione).sort((a,b) => (a.sort||0) - (b.sort||0));
 
         sorted.forEach((item) => {
@@ -156,6 +151,7 @@
             div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
             
             if(item.isAdmin) {
+                // MACRO RIGA AMMINISTRATIVA AGGIORNATA
                 let gridHTML = `<div class="admin-block">
                     <div class="admin-top-row">
                         <div class="admin-item"><span class="admin-label-row">CONTRATTO</span> <input type="checkbox" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div>
@@ -165,6 +161,7 @@
                     </div>
                     <div class="admin-grid">
                         <div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head">DATA</div><div class="admin-label-head">CHI</div>`;
+                
                 ["1° ACCONTO", "2° ACCONTO", "3° ACCONTO", "4° ACCONTO", "5° ACCONTO", "6° ACCONTO"].forEach((lab, i) => {
                     const idx = i + 1;
                     gridHTML += `
@@ -206,11 +203,6 @@
             container.appendChild(div);
             div.querySelectorAll('textarea').forEach(autoResize);
         });
-
-        // Focus management per TAB
-        container.querySelectorAll('input, textarea').forEach((el, idx, arr) => {
-            el.onkeydown = e => { if(e.key==='Tab'){ e.preventDefault(); const n = arr[idx+1]||arr[0]; n.focus(); } };
-        });
     }
 
     function applicaSchemaMatrimonio() {
@@ -239,7 +231,6 @@
     function openModal(id) { document.getElementById(id).style.display='flex'; }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
     function pulisciTuttoGiorno(iso) { if(confirm("Svuotare tutto?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
-    function toggleVista(v) { /* Ripristinerò vista mese se necessario */ }
 
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
