@@ -32,17 +32,17 @@
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
         
-        /* Nuova Riga Admin Espansa */
-        .admin-block { background: #fdfdfd; border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin-top: 5px; }
-        .admin-top-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-        .admin-grid { display: grid; grid-template-columns: 85px 70px 105px auto; gap: 6px; align-items: center; }
-        .admin-label-head { font-size: 9px; font-weight: 900; color: var(--p); text-transform: uppercase; }
-        .admin-label-row { font-size: 10px; font-weight: bold; color: #444; }
-        .input-adm { border: 1px solid #ccc; border-radius: 4px; padding: 4px; font-size: 11px; font-weight: bold; }
-        .input-op { width: 140px; background: #fffde7; border: 1px solid #ffd54f; }
-        .adm-dots { display: flex; gap: 3px; }
-        .dot-s { width: 22px; height: 22px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; cursor: pointer; opacity: 0.3; }
-        .dot-s.active { opacity: 1; border: 1px solid #000; transform: scale(1.1); }
+        /* BLOCCO ADMIN POTENZIATO */
+        .admin-block { background: #fdfdfd; border: 2px solid #bbb; border-radius: 10px; padding: 12px; margin-top: 5px; }
+        .admin-top-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .admin-grid { display: grid; grid-template-columns: 100px 85px 125px auto; gap: 10px; align-items: center; }
+        .admin-label-head { font-size: 11px; font-weight: 900; color: var(--p); text-transform: uppercase; }
+        .admin-label-row { font-size: 12px; font-weight: bold; color: #333; }
+        .input-adm { border: 1px solid #999; border-radius: 5px; padding: 6px; font-size: 13px; font-weight: bold; }
+        .input-op { width: 160px; background: #fffde7; border: 1.5px solid #ffd54f; }
+        .adm-dots { display: flex; gap: 5px; }
+        .dot-s { width: 26px; height: 26px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; opacity: 0.25; transition: 0.2s; }
+        .dot-s.active { opacity: 1; border: 2px solid #000; transform: scale(1.1); }
 
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
@@ -223,22 +223,31 @@
                 if(item.isAdmin) {
                     contentHTML = `<div class="admin-block">
                         <div class="admin-top-row">
-                            <div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div>
-                            <div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div>
-                            <div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div>
-                            <div class="admin-item">OPERATORE <input type="text" class="input-adm input-op" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div>
+                            <div class="admin-item" style="font-size:12px">CONTRATTO <input type="checkbox" style="width:20px;height:20px" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div>
+                            <div class="admin-item" style="font-size:12px">FOTO <input type="checkbox" style="width:20px;height:20px" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div>
+                            <div class="admin-item" style="font-size:12px">VIDEO <input type="checkbox" style="width:20px;height:20px" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div>
+                            <div class="admin-item" style="font-size:12px">OPERATORE <input type="text" class="input-adm input-op" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div>
                         </div>
                         <div class="admin-grid">
-                            <div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head">DATA</div><div class="admin-label-head">CHI</div>`;
+                            <div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head" id="label-dinamica">INFO</div><div class="admin-label-head">CHI</div>`;
                     
                     for(let i=1; i<=6; i++) {
-                        const lab = i===1 ? "1° ACCONTO" : i+"° ACCONTO";
+                        const rowLab = i===1 ? "1° ACCONTO" : i+"° ACCONTO";
+                        const infoLab = i===1 ? "NUM.SCONTR.FISC." : "DATA";
                         contentHTML += `
-                            <div class="admin-label-row">${lab}</div>
-                            <input type="number" class="input-adm" style="width:65px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})">
-                            <input type="text" class="input-adm" style="width:100px" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})">
+                            <div class="admin-label-row">${rowLab}</div>
+                            <input type="number" class="input-adm" style="width:75px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})">
+                            <div style="display:flex; flex-direction:column;">
+                                <span style="font-size:8px; color:#666; font-weight:900;">${infoLab}</span>
+                                <input type="text" class="input-adm" style="width:115px" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})">
+                            </div>
                             <div class="adm-dots">
-                                ${['ric','a','d'].map(k => `<div class="dot-s ${item['chi'+i]===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})">${colMap[k][1]}</div>`).join('')}
+                                ${['ric','a','d'].map(k => {
+                                    const active = item['chi'+i]===k;
+                                    // Logica per deflaggare se già attivo
+                                    const clickAction = active ? `db.ref('agenda/${giornoCorrente}/${item.id}/chi${i}').remove()` : `db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})`;
+                                    return `<div class="dot-s ${active?'active':''}" style="background:${colMap[k][0]}" onclick="${clickAction}">${colMap[k][1]}</div>`;
+                                }).join('')}
                             </div>`;
                     }
                     contentHTML += `</div></div>`;
@@ -312,7 +321,12 @@
         db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def", sort: 999 });
     }
 
-    function cambiaColore(id, c, oraDefault) { db.ref(`agenda/${giornoCorrente}/${id}`).update({ c: c, h: oraDefault }); }
+    function cambiaColore(id, c, oraDefault) { 
+        const current = datiGiorno[id]?.c;
+        const newVal = (current === c) ? 'def' : c;
+        db.ref(`agenda/${giornoCorrente}/${id}`).update({ c: newVal, h: oraDefault }); 
+    }
+    
     function del(id) { 
         if(confirm("Eliminare?")) {
             db.ref(`agenda/${giornoCorrente}/${id}`).remove();
