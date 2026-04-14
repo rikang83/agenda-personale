@@ -30,7 +30,7 @@
         .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { display: none; }
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
-        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; resize: none; outline: none; overflow: hidden; }
+        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; }
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
         .dot.active { border-color: #333; transform: scale(1.1); }
@@ -47,11 +47,12 @@
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
         .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
         
-        /* LAYOUT MACRO-RIGA SCHEMA MATRIMONIO */
-        .triple-row { display: flex; gap: 5px; width: 100%; align-items: stretch; }
-        .f-sposo { flex: 1.5; } /* Campo nome più largo */
+        /* STILI SPECIFICI SCHEMA MATRIMONIO */
+        .wedding-container { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+        .wedding-row-split { display: flex; gap: 5px; width: 100%; }
+        .f-main { flex: 2; font-weight: bold; color: #000; }
         .f-tel { flex: 1; font-weight: bold; color: #000; }
-        .f-via { flex: 1.5; }
+        .f-full { width: 100%; font-weight: bold; color: #000; }
         .nota-input::placeholder { color: #000; font-weight: bold; opacity: 1; }
     </style>
 </head>
@@ -206,7 +207,7 @@
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
                 
                 let contentHTML = "";
-                // Gestione MACRO-RIGA SPOSO/SPOSA + TEL + VIA
+                // Logica Macro-Blocco Sposo/Sposa
                 if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
                     const telId = item.id + "_tel";
                     const viaId = item.id + "_via";
@@ -218,16 +219,17 @@
                             <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
                                 <input type="text" class="ora-input" value="${item.h}">
                             </div>
-                            <div class="triple-row">
-                                <textarea class="nota-input f-sposo" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
-                                <textarea class="nota-input f-tel" placeholder="TEL:" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
-                                <textarea class="nota-input f-via" placeholder="VIA:" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
+                            <div class="wedding-container">
+                                <div class="wedding-row-split">
+                                    <textarea class="nota-input f-main" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
+                                    <textarea class="nota-input f-tel" placeholder="TEL:" oninput="autoResize(this)" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
+                                </div>
+                                <textarea class="nota-input f-full" placeholder="VIA:" oninput="autoResize(this)" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
                             </div>
                         </div>`;
                 } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) {
-                    return; // Non renderizziamo separatamente tel e via dello schema
+                    return; // Campi interni gestiti dal blocco principale
                 } else {
-                    // Riga standard o Note/Chiesa/Sala
                     contentHTML = `
                         <div class="slot-main">
                             <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
@@ -244,7 +246,7 @@
                     </div>`;
                 
                 container.appendChild(div);
-                div.querySelectorAll('textarea').forEach(autoResize);
+                div.querySelectorAll('textarea').forEach(el => { autoResize(el); });
             }
         });
     }
@@ -253,7 +255,6 @@
         const timestamp = Date.now();
         document.getElementById('checkRighe').checked = false;
         
-        // Lo schema ora contiene meno righe principali perché TEL e VIA sono integrate
         const schema = [
             { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true },
             { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true },
@@ -270,9 +271,9 @@
         closeModal('mainModal');
     }
 
-    function salvaCampo(id, campo, valore, oraDefault, isSubField = false) {
+    function salvaCampo(id, campo, valore, oraDefault, isSub = false) {
         const updates = { t: valore, h: oraDefault, c: 'def' };
-        if(isSubField) updates.isSubField = true;
+        if(isSub) updates.isSub = true;
         db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
 
@@ -282,12 +283,13 @@
     }
 
     function cambiaColore(id, c, oraDefault) { db.ref(`agenda/${giornoCorrente}/${id}`).update({ c: c, h: oraDefault }); }
-    function del(id) { if(confirm("Eliminare?")) {
-        db.ref(`agenda/${giornoCorrente}/${id}`).remove();
-        // Se eliminiamo la riga principale sposo/sposa, eliminiamo anche tel e via associati
-        db.ref(`agenda/${giornoCorrente}/${id}_tel`).remove();
-        db.ref(`agenda/${giornoCorrente}/${id}_via`).remove();
-    }}
+    function del(id) { 
+        if(confirm("Eliminare?")) {
+            db.ref(`agenda/${giornoCorrente}/${id}`).remove();
+            db.ref(`agenda/${giornoCorrente}/${id}_tel`).remove();
+            db.ref(`agenda/${giornoCorrente}/${id}_via`).remove();
+        }
+    }
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
     function toggleVista(v) { 
         document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; 
