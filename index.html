@@ -47,10 +47,11 @@
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
         .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
         
-        /* Layout per riga doppia schema */
-        .double-row { display: flex; gap: 5px; }
+        /* FIX STILI SCHEMA MATRIMONIO */
+        .double-row { display: flex; gap: 5px; width: 100%; }
         .flex-grow { flex: 1; }
-        .tel-field { flex: 0 0 35%; }
+        .tel-field { flex: 0 0 38%; font-weight: bold; color: #000; }
+        .nota-input.tel-field::placeholder { color: #000; font-weight: bold; opacity: 1; }
     </style>
 </head>
 <body>
@@ -197,18 +198,14 @@
             return diff !== 0 ? diff : a.id.localeCompare(b.id);
         });
 
-        sorted.forEach((item, index) => {
-            // Se lo schema matrimonio è attivo, non mostriamo le righe orarie vuote se l'utente lo preferisce, 
-            // ma qui seguiamo la tua logica originale.
+        sorted.forEach((item) => {
             if(item.t || mostraTutteRighe) {
                 const div = document.createElement('div');
                 div.className = "slot";
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
                 
-                // Logica speciale per le righe doppie (Sposo+Tel e Sposa+Tel)
                 let contentHTML = "";
                 if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
-                    const label = item.t.startsWith("SPOSO:") ? "SPOSO:" : "SPOSA:";
                     const telId = item.id + "_tel";
                     const telVal = datiGiorno[telId] ? datiGiorno[telId].t : "";
                     
@@ -217,16 +214,14 @@
                             <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
                                 <input type="text" class="ora-input" value="${item.h}">
                             </div>
-                            <div class="flex-grow double-row">
+                            <div class="double-row">
                                 <textarea class="nota-input flex-grow" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
                                 <textarea class="nota-input tel-field" placeholder="TEL:" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
                             </div>
                         </div>`;
                 } else if (item.id.endsWith("_tel")) {
-                    // Non renderizziamo la riga del telefono separatamente
-                    return;
+                    return; // Salta il rendering separato del telefono
                 } else {
-                    // Riga standard
                     contentHTML = `
                         <div class="slot-main">
                             <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
@@ -250,8 +245,7 @@
 
     function applicaSchemaMatrimonio() {
         const timestamp = Date.now();
-        // Disattiviamo le righe orarie per pulizia come richiesto
-        document.getElementById('checkRighe').checked = false;
+        document.getElementById('checkRighe').checked = false; // Nascondi orari vuoti
         
         const schema = [
             { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true },
@@ -261,7 +255,7 @@
             { id: "m" + timestamp + "_7", t: "CHIESA: ", isWed: true },
             { id: "m" + timestamp + "_8", t: "SALA: ", isWed: true },
             { id: "m" + timestamp + "_9", t: "ESTERNI: ", isWed: true },
-            { id: "m" + timestamp + "_10", t: "NOTE: ", isWed: true }
+            { id: "m" + timestamp + "_11", t: "NOTE: ", isWed: true } // Note spostate alla fine
         ];
 
         db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ________________");
@@ -296,14 +290,12 @@
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
-        const impegni = Object.keys(datiGiorno)
-            .filter(k => !k.endsWith("_tel"))
-            .map(k => {
-                let text = datiGiorno[k].t;
-                if(datiGiorno[k+"_tel"]) text += " " + datiGiorno[k+"_tel"].t;
-                return { h: datiGiorno[k].h, t: text };
-            });
-        impegni.forEach(i => { if(i.t.trim()) messaggio += `• ${i.t}\n`; });
+        const impegni = Object.keys(datiGiorno).filter(k => !k.endsWith("_tel")).map(k => {
+            let text = datiGiorno[k].t;
+            if(datiGiorno[k+"_tel"]) text += " " + datiGiorno[k+"_tel"].t;
+            return text;
+        });
+        impegni.forEach(i => { if(i.trim()) messaggio += `• ${i}\n`; });
         navigator.share ? navigator.share({ title: titolo, text: messaggio }) : prompt("Copia:", messaggio);
     }
 
