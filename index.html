@@ -30,13 +30,13 @@
         .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { display: none; }
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
-        
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
         
-        /* Nuova riga admin */
-        .admin-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 5px; font-size: 12px; align-items: center; border: 1px solid #eee; }
-        .admin-item { display: flex; align-items: center; gap: 4px; font-weight: bold; }
-        .admin-item input[type="text"], .admin-item input[type="number"] { border: 1px solid #ccc; border-radius: 4px; padding: 4px; width: 60px; font-weight: bold; }
+        /* Riga Admin */
+        .admin-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 5px; font-size: 11px; align-items: center; border: 1px solid #eee; }
+        .admin-item { display: flex; align-items: center; gap: 4px; font-weight: bold; color: #333; }
+        .admin-item input[type="text"], .admin-item input[type="number"] { border: 1px solid #ccc; border-radius: 4px; padding: 5px; width: 65px; font-size: 12px; font-weight: bold; }
+        .admin-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
 
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
@@ -188,6 +188,7 @@
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
+        // Protezione contro il refresh mentre si scrive
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
         
         container.innerHTML = "";
@@ -204,7 +205,7 @@
         
         Object.keys(datiGiorno).forEach(key => {
             const item = datiGiorno[key];
-            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sortKey: item.sort || cleanH(item.h), isWed: item.isWed, isAdmin: item.isAdmin };
+            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sortKey: item.sort || cleanH(item.h), isWed: item.isWed, isAdmin: item.isAdmin, acconto: item.acconto, contratto: item.contratto, scontrino: item.scontrino, foto: item.foto, video: item.video };
         });
 
         const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
@@ -218,7 +219,6 @@
                 let contentHTML = "";
                 
                 if(item.isAdmin) {
-                    // RIGA ADMIN PRIVATA
                     contentHTML = `
                         <div class="admin-row">
                             <div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto ? 'checked' : ''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto: this.checked})"></div>
@@ -269,13 +269,14 @@
             }
         });
         
-        container.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach((ta, idx, array) => {
-            ta.addEventListener('keydown', e => {
+        // Tasto TAB universale
+        container.querySelectorAll('textarea, input').forEach((el, idx, array) => {
+            el.addEventListener('keydown', e => {
                 if (e.key === 'Tab') {
                     e.preventDefault();
                     const next = array[idx + 1] || array[0];
                     next.focus();
-                    if(next.tagName === "TEXTAREA") {
+                    if(next.tagName === "TEXTAREA" || (next.tagName === "INPUT" && next.type === "text")) {
                         const val = next.value;
                         next.value = '';
                         next.value = val;
@@ -295,7 +296,7 @@
             { id: "m" + timestamp + "_4", t: "SALA: ", isWed: true, s: 4 },
             { id: "m" + timestamp + "_5", t: "ESTERNI: ", isWed: true, s: 5 },
             { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true, s: 6 },
-            { id: "m" + timestamp + "_7", t: "ADMIN", isAdmin: true, s: 7 } // Nuova riga admin
+            { id: "m" + timestamp + "_7", isAdmin: true, s: 7 } 
         ];
         db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ");
         schema.forEach(item => {
@@ -343,29 +344,19 @@
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
-        
         const keys = Object.keys(datiGiorno).sort((a,b) => (datiGiorno[a].sort||0) - (datiGiorno[b].sort||0));
-        
         keys.forEach(k => {
             const item = datiGiorno[k];
-            if (item.isSub || item.isAdmin) return; // Salta Tel/Via e Riga Admin
+            if (item.isSub || item.isAdmin) return; 
             if (!item.t || item.t.trim().length < 3) return;
-
             messaggio += `• ${item.h !== "00:00" ? '*' + item.h + '* ' : ''}${item.t}\n`;
-            
-            if (datiGiorno[k+"_tel"] && datiGiorno[k+"_tel"].t.length > 5) {
-                messaggio += `  📞 ${datiGiorno[k+"_tel"].t}\n`;
-            }
-            if (datiGiorno[k+"_via"] && datiGiorno[k+"_via"].t.length > 5) {
-                messaggio += `  📍 ${datiGiorno[k+"_via"].t}\n`;
-            }
+            if (datiGiorno[k+"_tel"] && datiGiorno[k+"_tel"].t.length > 5) messaggio += `  📞 ${datiGiorno[k+"_tel"].t}\n`;
+            if (datiGiorno[k+"_via"] && datiGiorno[k+"_via"].t.length > 5) messaggio += `  📍 ${datiGiorno[k+"_via"].t}\n`;
         });
-
         if (navigator.share) {
             navigator.share({ title: titolo, text: messaggio });
         } else {
-            const url = `https://wa.me/?text=${encodeURIComponent(messaggio)}`;
-            window.open(url, '_blank');
+            window.open(`https://wa.me/?text=${encodeURIComponent(messaggio)}`, '_blank');
         }
     }
 
