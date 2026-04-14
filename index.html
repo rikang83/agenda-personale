@@ -33,6 +33,11 @@
         
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
         
+        /* Nuova riga admin */
+        .admin-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 5px; font-size: 12px; align-items: center; border: 1px solid #eee; }
+        .admin-item { display: flex; align-items: center; gap: 4px; font-weight: bold; }
+        .admin-item input[type="text"], .admin-item input[type="number"] { border: 1px solid #ccc; border-radius: 4px; padding: 4px; width: 60px; font-weight: bold; }
+
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
         .dot.active { border-color: #333; transform: scale(1.1); }
@@ -119,7 +124,6 @@
     function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
     function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
-    // Gestione cursore protetto per TEL: e VIA:
     function handleLabelInput(el, label) {
         if (!el.value.startsWith(label)) { el.value = label + " "; }
         autoResize(el);
@@ -184,7 +188,7 @@
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
-        if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.classList.contains('ora-input')) return;
+        if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
         
         container.innerHTML = "";
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
@@ -200,19 +204,30 @@
         
         Object.keys(datiGiorno).forEach(key => {
             const item = datiGiorno[key];
-            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sortKey: item.sort || cleanH(item.h), isWed: item.isWed };
+            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sortKey: item.sort || cleanH(item.h), isWed: item.isWed, isAdmin: item.isAdmin };
         });
 
         const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
 
         sorted.forEach((item) => {
-            if(item.t || mostraTutteRighe) {
+            if(item.t || mostraTutteRighe || item.isAdmin) {
                 const div = document.createElement('div');
                 div.className = "slot";
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
                 
                 let contentHTML = "";
-                if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
+                
+                if(item.isAdmin) {
+                    // RIGA ADMIN PRIVATA
+                    contentHTML = `
+                        <div class="admin-row">
+                            <div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto ? 'checked' : ''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto: this.checked})"></div>
+                            <div class="admin-item">ACCONTO € <input type="number" value="${item.acconto || ''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({acconto: this.value})"></div>
+                            <div class="admin-item">SCONTRINO N. <input type="text" value="${item.scontrino || ''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({scontrino: this.value})"></div>
+                            <div class="admin-item">FOTO <input type="checkbox" ${item.foto ? 'checked' : ''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto: this.checked})"></div>
+                            <div class="admin-item">VIDEO <input type="checkbox" ${item.video ? 'checked' : ''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video: this.checked})"></div>
+                        </div>`;
+                } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
                     const telId = item.id + "_tel";
                     const viaId = item.id + "_via";
                     const telVal = (datiGiorno[telId] ? datiGiorno[telId].t : "TEL: ").trim() || "TEL:";
@@ -245,7 +260,7 @@
 
                 div.innerHTML = contentHTML + `
                     <div class="color-dots">
-                        ${!item.isWed ? Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join('') : ''}
+                        ${(!item.isWed && !item.isAdmin) ? Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join('') : ''}
                         <button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
                     </div>`;
                 
@@ -254,17 +269,17 @@
             }
         });
         
-        // Gestione tasto TAB per spostarsi tra campi
-        container.querySelectorAll('textarea').forEach((ta, idx, array) => {
+        container.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach((ta, idx, array) => {
             ta.addEventListener('keydown', e => {
                 if (e.key === 'Tab') {
                     e.preventDefault();
                     const next = array[idx + 1] || array[0];
                     next.focus();
-                    // Sposta cursore alla fine
-                    const val = next.value;
-                    next.value = '';
-                    next.value = val;
+                    if(next.tagName === "TEXTAREA") {
+                        const val = next.value;
+                        next.value = '';
+                        next.value = val;
+                    }
                 }
             });
         });
@@ -279,14 +294,19 @@
             { id: "m" + timestamp + "_3", t: "CHIESA: ", isWed: true, s: 3 },
             { id: "m" + timestamp + "_4", t: "SALA: ", isWed: true, s: 4 },
             { id: "m" + timestamp + "_5", t: "ESTERNI: ", isWed: true, s: 5 },
-            { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true, s: 6 }
+            { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true, s: 6 },
+            { id: "m" + timestamp + "_7", t: "ADMIN", isAdmin: true, s: 7 } // Nuova riga admin
         ];
         db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ");
         schema.forEach(item => {
-            db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", t: item.t, c: 'def', isWed: true, sort: item.s });
-            if (item.t.includes("SPOS")) {
-                db.ref(`agenda/${giornoCorrente}/${item.id}_tel`).set({ h: "00:00", t: "TEL: ", c: 'def', isSub: true, sort: item.s + 0.1 });
-                db.ref(`agenda/${giornoCorrente}/${item.id}_via`).set({ h: "00:00", t: "VIA: ", c: 'def', isSub: true, sort: item.s + 0.2 });
+            if(item.isAdmin) {
+                db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", isAdmin: true, contratto: false, acconto: "", scontrino: "", foto: false, video: false, sort: item.s });
+            } else {
+                db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", t: item.t, c: 'def', isWed: true, sort: item.s });
+                if (item.t.includes("SPOS")) {
+                    db.ref(`agenda/${giornoCorrente}/${item.id}_tel`).set({ h: "00:00", t: "TEL: ", c: 'def', isSub: true, sort: item.s + 0.1 });
+                    db.ref(`agenda/${giornoCorrente}/${item.id}_via`).set({ h: "00:00", t: "VIA: ", c: 'def', isSub: true, sort: item.s + 0.2 });
+                }
             }
         });
         closeModal('mainModal');
@@ -324,17 +344,15 @@
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
         
-        // Ordiniamo gli impegni per la condivisione
         const keys = Object.keys(datiGiorno).sort((a,b) => (datiGiorno[a].sort||0) - (datiGiorno[b].sort||0));
         
         keys.forEach(k => {
             const item = datiGiorno[k];
-            if (item.isSub) return; // Non scriviamo tel/via come righe separate
+            if (item.isSub || item.isAdmin) return; // Salta Tel/Via e Riga Admin
             if (!item.t || item.t.trim().length < 3) return;
 
             messaggio += `• ${item.h !== "00:00" ? '*' + item.h + '* ' : ''}${item.t}\n`;
             
-            // Se è Sposo o Sposa, cerca i sub-campi tel e via
             if (datiGiorno[k+"_tel"] && datiGiorno[k+"_tel"].t.length > 5) {
                 messaggio += `  📞 ${datiGiorno[k+"_tel"].t}\n`;
             }
