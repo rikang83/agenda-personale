@@ -3,69 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda 2026 - Versione Definitiva</title>
+    <title>Agenda 2026</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --evidenza: #fffbe6; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
+        :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --festivo-dark: #b71c1c; --evidenza: #fffbe6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
-        .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 6px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; }
-        
-        /* Calendario Strip e Colori Festivi */
+        .master-switch { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); padding: 5px 8px; border-radius: 20px; border: 1px solid white; font-size: 9px; }
+        .switch { position: relative; width: 30px; height: 16px; display: inline-block; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 20px; transition: .3s; }
+        .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
+        input:checked + .slider { background: var(--a); }
+        input:checked + .slider:before { transform: translateX(14px); }
         .calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; gap: 8px; border-bottom: 1px solid #ddd; }
         .day-item { min-width: 55px; padding: 10px 5px; border-radius: 10px; border: 1px solid #eee; text-align: center; cursor: pointer; background: white; flex-shrink: 0; }
         .day-item.active { background: var(--r) !important; color: white !important; }
-        .day-item.sunday, .day-item.holiday { color: var(--festivo); font-weight: bold; }
-
+        .day-item.holiday { background: #ffebee !important; color: var(--festivo) !important; }
+        .day-item.nat-holiday { background: #ffcdd2 !important; color: var(--festivo-dark) !important; border: 1px solid var(--festivo); }
         .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
-        
         .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .slot-main { display: flex; gap: 10px; align-items: flex-start; }
         .ora-box { width: 75px; flex-shrink: 0; }
+        .ora-box.hidden { display: none; }
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
-        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; overflow: hidden; }
+        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
+        
+        /* Riga Admin */
+        .admin-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 5px; font-size: 11px; align-items: center; border: 1px solid #eee; }
+        .admin-item { display: flex; align-items: center; gap: 4px; font-weight: bold; color: #333; }
+        .admin-item input[type="text"], .admin-item input[type="number"] { border: 1px solid #ccc; border-radius: 4px; padding: 5px; width: 65px; font-size: 12px; font-weight: bold; }
+        .admin-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
 
-        /* Vista Mese Griglia */
-        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ddd; padding: 2px; }
-        .cell-mese { background: white; min-height: 80px; padding: 4px; font-size: 10px; cursor: pointer; }
-        .cell-mese.holiday { background: #ffebee; }
-
-        /* NUOVO LAYOUT ADMIN GESTIONE INCASSI */
-        .admin-block { background: #fdfdfd; border: 1px solid #ccc; border-radius: 8px; padding: 12px; margin-top: 5px; }
-        .admin-top-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-        .admin-grid { display: grid; grid-template-columns: 90px 75px 110px auto; gap: 8px; align-items: center; }
-        .admin-label-head { font-size: 9px; font-weight: 900; color: #1a237e; text-transform: uppercase; }
-        .admin-label-row { font-size: 10px; font-weight: bold; color: #444; }
-        .input-acconto { width: 65px; border: 1px solid #ccc; padding: 4px; border-radius: 4px; }
-        .input-data { width: 100px; border: 1px solid #ccc; padding: 4px; border-radius: 4px; }
-        .input-operatore { width: 160px; background: #fffde7; border: 1px solid #ffd54f; padding: 4px; border-radius: 4px; font-weight: bold; }
-        .incasso-dots { display: flex; gap: 3px; }
-        .dot-sm { width: 22px; height: 22px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; cursor: pointer; opacity: 0.3; }
-        .dot-sm.active { opacity: 1; border: 1px solid #000; transform: scale(1.1); }
-
-        .wedding-container { width: 100%; display: flex; flex-direction: column; gap: 5px; }
-        .wedding-row-split { display: flex; gap: 5px; }
-        .f-main { flex: 2; }
-        .f-tel { flex: 1; }
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
         .dot.active { border-color: #333; transform: scale(1.1); }
-        .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; }
+        .grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
+        .nome-giorno { background: #f8f9fa; text-align: center; font-size: 11px; padding: 10px 0; font-weight: bold; }
+        .cell-mese { background: white; min-height: 120px; padding: 4px; cursor: pointer; position: relative; overflow: hidden; }
+        .cell-mese.holiday { background: #ffebee; }
+        .cell-mese.nat-holiday { background: #ffcdd2; }
+        .btn-del-mese { position: absolute; top: 2px; right: 2px; background: none; border: none; font-size: 12px; cursor: pointer; opacity: 0.3; }
+        .m-titolo-box { background: var(--evidenza); font-size: 9px; font-weight: bold; color: #b8860b; text-align: center; padding: 3px 2px; margin: 4px 0; border-bottom: 1px solid #ffe082; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
+        .item-mese { font-size: 9px; margin-top: 2px; padding: 2px; border-radius: 3px; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fest-label { font-size: 7px; color: var(--festivo-dark); font-weight: bold; display: block; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
+        .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
+        
+        .wedding-container { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+        .wedding-row-split { display: flex; gap: 5px; width: 100%; }
+        .f-main { flex: 2; }
+        .f-tel { flex: 1; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <select id="monthPicker" onchange="initCalendar()" style="width:90%; padding:8px; border-radius:8px;"></select>
+    <select id="monthPicker" onchange="initCalendar()" style="width:90%; padding:8px; border-radius:8px; margin-bottom:5px;"></select>
     <div class="nav-buttons">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
-        <button class="nav-btn" style="background:#0d47a1;" onclick="condividiTesto()">CONDIVIDI</button>
-        <button class="nav-btn" style="background:var(--festivo);" onclick="openModal('mainModal')">AZIONI</button>
+        <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
+        <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
+        <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
+        <button class="nav-btn" style="background:#0d47a1; border:none;" onclick="condividiTesto()">CONDIVIDI</button>
+        <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">AZIONI</button>
     </div>
 </div>
 
@@ -73,15 +79,34 @@
     <div class="calendar-strip" id="strip"></div>
     <input type="text" id="titoloGiorno" class="day-title" placeholder="TITOLO GIORNATA" onblur="salvaTitolo(this.value)">
     <div id="listaImpegni"></div>
-    <button class="fab-add" onclick="aggiungiRigaExtra()">+</button>
+    <button class="fab-add" id="btnAddExtra" onclick="aggiungiRigaExtra()">+</button>
 </div>
 
-<div id="vMese" style="display:none;"><div class="grid-mese" id="corpoMese"></div></div>
+<div id="vMese" style="display:none;">
+    <div class="grid-mese">
+        <div class="nome-giorno">LUN</div><div class="nome-giorno">MAR</div><div class="nome-giorno">MER</div><div class="nome-giorno">GIO</div><div class="nome-giorno">VEN</div><div class="nome-giorno">SAB</div><div class="nome-giorno">DOM</div>
+    </div>
+    <div class="grid-mese" id="corpoMese"></div>
+</div>
 
 <div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
+        <h3 style="text-align:center;">Opzioni Giorno</h3>
         <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px;">CARICA SCHEMA MATRIMONIO</button>
-        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET GIORNO</button>
+        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET TOTALE OGGI</button>
+    </div>
+</div>
+
+<div id="repModal" class="overlay" onclick="closeModal('repModal')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h3 style="margin-top:0; text-align:center;">Gestione Impegni</h3>
+        <input type="text" id="repTesto" placeholder="Cosa scrivere?" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <select id="repHInizio" style="flex:1; padding:10px; border-radius:8px;"></select>
+            <select id="repHFine" style="flex:1; padding:10px; border-radius:8px;"></select>
+        </div>
+        <input type="date" id="repDataFine" style="width:100%; padding:12px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:14px; background:var(--a); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">APPLICA</button>
     </div>
 </div>
 
@@ -92,17 +117,61 @@
 
     let giornoCorrente = "";
     let datiGiorno = {};
-    const festivi2026 = ["2026-01-01","2026-01-06","2026-04-05","2026-04-06","2026-04-25","2026-05-01","2026-06-02","2026-08-15","2026-11-01","2026-12-08","2026-12-25","2026-12-26"];
-    const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], def:['#ddd',''] };
+    const orariFissi = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
+    const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
+    const festivi2026 = { "01-01":"Capodanno", "01-06":"Epifania", "04-05":"Pasqua", "04-06":"Pasquetta", "04-25":"Liberazione", "05-01":"Festa Lavoro", "06-02":"Festa Rep.", "08-15":"Ferragosto", "11-01":"Ognissanti", "12-08":"Immacolata", "12-25":"Natale", "12-26":"S. Stefano" };
 
+    function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
     function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-    function handleLabelInput(el, label) { if (!el.value.startsWith(label)) { el.value = label + " "; } autoResize(el); }
+
+    function handleLabelInput(el, label) {
+        if (!el.value.startsWith(label)) { el.value = label + " "; }
+        autoResize(el);
+    }
+    function checkLabelSelection(el, label) {
+        if (el.selectionStart < label.length) { el.setSelectionRange(label.length, label.length); }
+    }
 
     function initCalendar() {
         const mp = document.getElementById('monthPicker');
         if(!mp.options.length) {
             ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].forEach((m, i) => mp.add(new Option(m+" 2026", `2026-${String(i+1).padStart(2,'0')}`)));
             mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+            const si = document.getElementById('repHInizio'); const sf = document.getElementById('repHFine');
+            orariFissi.forEach(h => { si.add(new Option(h, h)); sf.add(new Option(h, h)); });
+        }
+        const [y, m] = mp.value.split('-').map(Number);
+        const strip = document.getElementById('strip'); strip.innerHTML = "";
+        const corpo = document.getElementById('corpoMese'); corpo.innerHTML = "";
+        let primo = new Date(y, m-1, 1).getDay(); if(primo === 0) primo = 7;
+        for(let s=1; s<primo; s++) corpo.innerHTML += `<div class="cell-mese" style="background:#f9f9f9"></div>`;
+        for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
+            const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const festClass = festivi2026[iso.substring(5)] ? 'nat-holiday' : (new Date(iso).getDay()===0 ? 'holiday' : '');
+            const ds = document.createElement('div');
+            ds.className = `day-item ${festClass}`; ds.id = "st-"+iso;
+            ds.innerHTML = `<small>${["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][new Date(iso).getDay()]}</small><br><b>${d}</b>`;
+            ds.onclick = () => selezionaGiorno(iso);
+            strip.appendChild(ds);
+            const dc = document.createElement('div');
+            dc.className = `cell-mese ${festClass}`;
+            dc.innerHTML = `<button class="btn-del-mese" onclick="pulisciTuttoGiorno('${iso}', event)">🗑️</button>
+                <b>${d}</b><span class="fest-label">${festivi2026[iso.substring(5)]||""}</span>
+                <div id="m-tit-${iso}" class="m-titolo-box"></div>
+                <div id="m-list-${iso}"></div>`;
+            dc.onclick = (e) => { if(e.target.tagName !== 'BUTTON') { toggleVista('g'); selezionaGiorno(iso); } };
+            corpo.appendChild(dc);
+            db.ref('titoli/'+iso).on('value', s => { 
+                const el = document.getElementById('m-tit-'+iso); 
+                if(el) { const val = s.val() || ""; el.innerText = val; el.style.display = val.trim() ? "block" : "none"; } 
+            });
+            db.ref('agenda/'+iso).on('value', s => {
+                const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
+                const data = s.val() || {};
+                Object.values(data).sort((a,b)=> cleanH(a.h)-cleanH(b.h)).forEach(v => {
+                    if(v.t) box.innerHTML += `<div class="item-mese" style="background:${colMap[v.c]?.[0] || colMap.def[0]}">${v.h || '??'} ${v.t}</div>`;
+                });
+            });
         }
         selezionaGiorno(new Date().toISOString().split('T')[0], true);
     }
@@ -110,145 +179,202 @@
     function selezionaGiorno(data, scroll = false) {
         if(giornoCorrente) db.ref('agenda/'+giornoCorrente).off();
         giornoCorrente = data;
+        document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
+        const att = document.getElementById('st-'+data);
+        if(att) { att.classList.add('active'); if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"}); }
         db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
-        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); renderMese(); });
-        
-        const [y, m] = data.split('-').map(Number);
-        const strip = document.getElementById('strip'); strip.innerHTML = "";
-        for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
-            const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const dateObj = new Date(iso);
-            const isSun = dateObj.getDay() === 0;
-            const isHol = festivi2026.includes(iso);
-            const ds = document.createElement('div');
-            ds.className = `day-item ${iso === data ? 'active' : ''} ${isSun?'sunday':''} ${isHol?'holiday':''}`;
-            ds.innerHTML = `<small>${d}</small>`;
-            ds.onclick = () => selezionaGiorno(iso);
-            strip.appendChild(ds);
-            if(iso === data && scroll) ds.scrollIntoView({inline:"center"});
-        }
+        db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
     }
 
     function renderGiorno() {
         const container = document.getElementById('listaImpegni');
+        // Protezione contro il refresh mentre si scrive
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
+        
         container.innerHTML = "";
-        const sorted = Object.values(datiGiorno).sort((a,b) => (a.sort||0) - (b.sort||0));
+        const mostraTutteRighe = document.getElementById('checkRighe').checked;
+        const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
+        
+        let visualizzazione = {};
+        if(mostraTutteRighe) {
+            orariFissi.forEach(h => {
+                const id = "h" + h.replace(":", "");
+                visualizzazione[id] = { id: id, h: h, t: "", c: "def", sortKey: cleanH(h) };
+            });
+        }
+        
+        Object.keys(datiGiorno).forEach(key => {
+            const item = datiGiorno[key];
+            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sortKey: item.sort || cleanH(item.h), isWed: item.isWed, isAdmin: item.isAdmin, acconto: item.acconto, contratto: item.contratto, scontrino: item.scontrino, foto: item.foto, video: item.video };
+        });
+
+        const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
 
         sorted.forEach((item) => {
-            const div = document.createElement('div');
-            div.className = "slot";
-            div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
-            
-            if(item.isAdmin) {
-                // BLOCCO ADMIN RICHIESTO
-                let gridHTML = `<div class="admin-block">
-                    <div class="admin-top-row">
-                        <div class="admin-item"><span class="admin-label-row">CONTRATTO</span> <input type="checkbox" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div>
-                        <div class="admin-item"><span class="admin-label-row">FOTO</span> <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div>
-                        <div class="admin-item"><span class="admin-label-row">VIDEO</span> <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div>
-                        <div class="admin-item"><span class="admin-label-row">OPERATORE</span> <input type="text" class="input-operatore" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div>
-                    </div>
-                    <div class="admin-grid">
-                        <div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head">DATA</div><div class="admin-label-head">CHI</div>`;
-                ["1° ACCONTO", "2° ACCONTO", "3° ACCONTO", "4° ACCONTO", "5° ACCONTO", "6° ACCONTO"].forEach((lab, i) => {
-                    const idx = i + 1;
-                    gridHTML += `
-                        <div class="admin-label-row">${lab}</div>
-                        <input type="number" class="input-acconto" value="${item['acc'+idx]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${idx}]:this.value})">
-                        <input type="text" class="input-data" value="${item['data'+idx]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['data'+${idx}]:this.value})">
-                        <div class="incasso-dots">
-                            ${['ric','a','d'].map(k => `<div class="dot-sm ${item['chi'+idx]===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${idx}]:'${k}'})">${colMap[k][1]}</div>`).join('')}
+            if(item.t || mostraTutteRighe || item.isAdmin) {
+                const div = document.createElement('div');
+                div.className = "slot";
+                div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
+                
+                let contentHTML = "";
+                
+                if(item.isAdmin) {
+                    contentHTML = `
+                        <div class="admin-row">
+                            <div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto ? 'checked' : ''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto: this.checked})"></div>
+                            <div class="admin-item">ACCONTO € <input type="number" value="${item.acconto || ''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({acconto: this.value})"></div>
+                            <div class="admin-item">SCONTRINO N. <input type="text" value="${item.scontrino || ''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({scontrino: this.value})"></div>
+                            <div class="admin-item">FOTO <input type="checkbox" ${item.foto ? 'checked' : ''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto: this.checked})"></div>
+                            <div class="admin-item">VIDEO <input type="checkbox" ${item.video ? 'checked' : ''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video: this.checked})"></div>
                         </div>`;
-                });
-                gridHTML += `</div></div>`;
-                div.innerHTML = gridHTML;
-            } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
-                const telVal = (datiGiorno[item.id+"_tel"]?.t || "TEL: ");
-                const viaVal = (datiGiorno[item.id+"_via"]?.t || "VIA: ");
-                div.innerHTML = `<div class="slot-main">
-                    <div class="ora-box"><input type="text" class="ora-input" value="${item.h}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({h:this.value})"></div>
-                    <div class="wedding-container">
-                        <div class="wedding-row-split">
-                            <textarea class="nota-input f-main" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({t:this.value})">${item.t}</textarea>
-                            <textarea class="nota-input f-tel" oninput="handleLabelInput(this, 'TEL:')" onblur="db.ref('agenda/${giornoCorrente}/${item.id}_tel').update({t:this.value, isSub:true, sort:${item.sort}+0.1})">${telVal}</textarea>
-                        </div>
-                        <textarea class="nota-input" oninput="handleLabelInput(this, 'VIA:')" onblur="db.ref('agenda/${giornoCorrente}/${item.id}_via').update({t:this.value, isSub:true, sort:${item.sort}+0.2})">${viaVal}</textarea>
-                    </div>
-                </div>`;
-            } else {
-                div.innerHTML = `<div class="slot-main">
-                    <div class="ora-box"><input type="text" class="ora-input" value="${item.h}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({h:this.value})"></div>
-                    <textarea class="nota-input" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({t:this.value})">${item.t}</textarea>
-                </div>`;
-            }
+                } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
+                    const telId = item.id + "_tel";
+                    const viaId = item.id + "_via";
+                    const telVal = (datiGiorno[telId] ? datiGiorno[telId].t : "TEL: ").trim() || "TEL:";
+                    const viaVal = (datiGiorno[viaId] ? datiGiorno[viaId].t : "VIA: ").trim() || "VIA:";
+                    
+                    contentHTML = `
+                        <div class="slot-main">
+                            <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
+                                <input type="text" class="ora-input" value="${item.h}">
+                            </div>
+                            <div class="wedding-container">
+                                <div class="wedding-row-split">
+                                    <textarea class="nota-input f-main" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
+                                    <textarea class="nota-input f-tel" oninput="handleLabelInput(this, 'TEL:')" onfocus="checkLabelSelection(this, 'TEL:')" onclick="checkLabelSelection(this, 'TEL:')" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
+                                </div>
+                                <textarea class="nota-input" oninput="handleLabelInput(this, 'VIA:')" onfocus="checkLabelSelection(this, 'VIA:')" onclick="checkLabelSelection(this, 'VIA:')" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
+                            </div>
+                        </div>`;
+                } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) {
+                    return;
+                } else {
+                    contentHTML = `
+                        <div class="slot-main">
+                            <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}">
+                                <input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')">
+                            </div>
+                            <textarea class="nota-input" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
+                        </div>`;
+                }
 
-            if(!item.isAdmin) {
-                div.innerHTML += `<div class="color-dots">
-                    ${['ric','a','d'].map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({c:'${k}'})">${colMap[k][1]}</div>`).join('')}
-                    <button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
-                </div>`;
+                div.innerHTML = contentHTML + `
+                    <div class="color-dots">
+                        ${(!item.isWed && !item.isAdmin) ? Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join('') : ''}
+                        <button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
+                    </div>`;
+                
+                container.appendChild(div);
+                div.querySelectorAll('textarea').forEach(autoResize);
             }
-            container.appendChild(div);
-            div.querySelectorAll('textarea').forEach(autoResize);
         });
-    }
-
-    function renderMese() {
-        const [y, m] = giornoCorrente.split('-').map(Number);
-        const corpo = document.getElementById('corpoMese'); corpo.innerHTML = "";
-        const ultimoGiorno = new Date(y, m, 0).getDate();
-        for(let d=1; d<=ultimoGiorno; d++) {
-            const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const cell = document.createElement('div');
-            cell.className = `cell-mese ${festivi2026.includes(iso)?'holiday':''}`;
-            cell.innerHTML = `<b>${d}</b>`;
-            cell.onclick = () => { toggleVista('g'); selezionaGiorno(iso); };
-            corpo.appendChild(cell);
-        }
+        
+        // Tasto TAB universale
+        container.querySelectorAll('textarea, input').forEach((el, idx, array) => {
+            el.addEventListener('keydown', e => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const next = array[idx + 1] || array[0];
+                    next.focus();
+                    if(next.tagName === "TEXTAREA" || (next.tagName === "INPUT" && next.type === "text")) {
+                        const val = next.value;
+                        next.value = '';
+                        next.value = val;
+                    }
+                }
+            });
+        });
     }
 
     function applicaSchemaMatrimonio() {
-        const tid = Date.now();
+        const timestamp = Date.now();
+        document.getElementById('checkRighe').checked = false; 
         const schema = [
-            { id: "m"+tid+"_1", t: "SPOSO: ", isWed:true, s: 1 },
-            { id: "m"+tid+"_2", t: "SPOSA: ", isWed:true, s: 2 },
-            { id: "m"+tid+"_3", t: "CHIESA: ", s: 3 },
-            { id: "m"+tid+"_4", t: "SALA: ", s: 4 },
-            { id: "m"+tid+"_5", t: "ESTERNI: ", s: 5 },
-            { id: "m"+tid+"_6", t: "NOTE: ", s: 6 },
-            { id: "admin_"+tid, isAdmin: true, s: 7 }
+            { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true, s: 1 },
+            { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true, s: 2 },
+            { id: "m" + timestamp + "_3", t: "CHIESA: ", isWed: true, s: 3 },
+            { id: "m" + timestamp + "_4", t: "SALA: ", isWed: true, s: 4 },
+            { id: "m" + timestamp + "_5", t: "ESTERNI: ", isWed: true, s: 5 },
+            { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true, s: 6 },
+            { id: "m" + timestamp + "_7", isAdmin: true, s: 7 } 
         ];
         db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ");
-        schema.forEach(x => db.ref(`agenda/${giornoCorrente}/${x.id}`).set({ ...x, h: "00:00", c: 'def', sort: x.s }));
+        schema.forEach(item => {
+            if(item.isAdmin) {
+                db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", isAdmin: true, contratto: false, acconto: "", scontrino: "", foto: false, video: false, sort: item.s });
+            } else {
+                db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", t: item.t, c: 'def', isWed: true, sort: item.s });
+                if (item.t.includes("SPOS")) {
+                    db.ref(`agenda/${giornoCorrente}/${item.id}_tel`).set({ h: "00:00", t: "TEL: ", c: 'def', isSub: true, sort: item.s + 0.1 });
+                    db.ref(`agenda/${giornoCorrente}/${item.id}_via`).set({ h: "00:00", t: "VIA: ", c: 'def', isSub: true, sort: item.s + 0.2 });
+                }
+            }
+        });
         closeModal('mainModal');
     }
 
-    function aggiungiRigaExtra() {
-        const id = "ex"+Date.now();
-        db.ref(`agenda/${giornoCorrente}/${id}`).set({ h:"00:00", t:"", c:"def", sort: 99 });
+    function salvaCampo(id, campo, valore, oraDefault, isSub = false) {
+        const updates = { [campo]: valore, h: oraDefault, c: 'def' };
+        if(isSub) updates.isSub = true;
+        db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
 
-    function del(id) { if(confirm("Eliminare?")) { db.ref(`agenda/${giornoCorrente}/${id}`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_tel`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_via`).remove(); } }
+    function aggiungiRigaExtra() {
+        const id = "ex" + Date.now();
+        db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def", sort: 999 });
+    }
+
+    function cambiaColore(id, c, oraDefault) { db.ref(`agenda/${giornoCorrente}/${id}`).update({ c: c, h: oraDefault }); }
+    function del(id) { 
+        if(confirm("Eliminare?")) {
+            db.ref(`agenda/${giornoCorrente}/${id}`).remove();
+            db.ref(`agenda/${giornoCorrente}/${id}_tel`).remove();
+            db.ref(`agenda/${giornoCorrente}/${id}_via`).remove();
+        }
+    }
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
-    function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
+    function toggleVista(v) { 
+        document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; 
+        document.getElementById('vMese').style.display = v==='m'?'block':'none'; 
+    }
     function openModal(id) { document.getElementById(id).style.display='flex'; }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
-    function pulisciTuttoGiorno(iso) { if(confirm("Svuotare tutto?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
-
+    function openRepModal() { document.getElementById('repDataFine').value = giornoCorrente; openModal('repModal'); }
+    
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
-        let msg = `📅 *${titolo}* (${giornoCorrente})\n\n`;
-        const sorted = Object.values(datiGiorno).sort((a,b)=> (a.sort||0)-(b.sort||0));
-        sorted.forEach(item => {
-            if(item.isAdmin || item.isSub || !item.t || item.t.length < 3) return;
-            msg += `• ${item.h!=='00:00'?'*'+item.h+'* ':''}${item.t}\n`;
-            if(datiGiorno[item.id+"_tel"]?.t.length > 5) msg += `  📞 ${datiGiorno[item.id+"_tel"].t}\n`;
-            if(datiGiorno[item.id+"_via"]?.t.length > 5) msg += `  📍 ${datiGiorno[item.id+"_via"].t}\n`;
+        let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
+        const keys = Object.keys(datiGiorno).sort((a,b) => (datiGiorno[a].sort||0) - (datiGiorno[b].sort||0));
+        keys.forEach(k => {
+            const item = datiGiorno[k];
+            if (item.isSub || item.isAdmin) return; 
+            if (!item.t || item.t.trim().length < 3) return;
+            messaggio += `• ${item.h !== "00:00" ? '*' + item.h + '* ' : ''}${item.t}\n`;
+            if (datiGiorno[k+"_tel"] && datiGiorno[k+"_tel"].t.length > 5) messaggio += `  📞 ${datiGiorno[k+"_tel"].t}\n`;
+            if (datiGiorno[k+"_via"] && datiGiorno[k+"_via"].t.length > 5) messaggio += `  📍 ${datiGiorno[k+"_via"].t}\n`;
         });
-        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        if (navigator.share) {
+            navigator.share({ title: titolo, text: messaggio });
+        } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(messaggio)}`, '_blank');
+        }
     }
 
+    function eseguiRipetizione() {
+        const testo = document.getElementById('repTesto').value;
+        const hInizio = cleanH(document.getElementById('repHInizio').value);
+        const hFine = cleanH(document.getElementById('repHFine').value);
+        const dataFine = document.getElementById('repDataFine').value;
+        let d = new Date(giornoCorrente);
+        while(d <= new Date(dataFine)) {
+            const iso = d.toISOString().split('T')[0];
+            orariFissi.forEach(h => { if(cleanH(h) >= hInizio && cleanH(h) <= hFine) db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' }); });
+            d.setDate(d.getDate() + 1);
+        }
+        closeModal('repModal');
+    }
+
+    function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
     window.onload = initCalendar;
 </script>
 </body>
