@@ -45,8 +45,6 @@
         .fest-label { font-size: 7px; color: var(--festivo-dark); font-weight: bold; display: block; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
-        
-        /* Stile per il tasto FLOTTANTE AGGIUNGI */
         .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
     </style>
 </head>
@@ -112,11 +110,7 @@
     const festivi2026 = { "01-01":"Capodanno", "01-06":"Epifania", "04-05":"Pasqua", "04-06":"Pasquetta", "04-25":"Liberazione", "05-01":"Festa Lavoro", "06-02":"Festa Rep.", "08-15":"Ferragosto", "11-01":"Ognissanti", "12-08":"Immacolata", "12-25":"Natale", "12-26":"S. Stefano" };
 
     function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
-
-    function autoResize(el) {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
-    }
+    function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
     function initCalendar() {
         const mp = document.getElementById('monthPicker');
@@ -193,8 +187,12 @@
             visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sort: cleanH(item.h) };
         });
 
-        Object.values(visualizzazione).sort((a,b) => a.sort - b.sort).forEach(item => {
+        Object.values(visualizzazione).sort((a,b) => {
+            let diff = a.sort - b.sort;
+            return diff !== 0 ? diff : a.id.localeCompare(b.id);
+        }).forEach(item => {
             if(item.t || mostraTutteRighe) {
+                const isSchemaMatrimonio = item.id.startsWith('m');
                 const div = document.createElement('div');
                 div.className = "slot";
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
@@ -209,7 +207,10 @@
                             onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
                     </div>
                     <div class="color-dots">
-                        ${Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join('')}
+                        ${!isSchemaMatrimonio ? 
+                            Object.keys(colMap).filter(k=>k!='def').map(k => `<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join('') 
+                            : ''
+                        }
                         <button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
                     </div>`;
                 container.appendChild(div);
@@ -219,45 +220,42 @@
         });
     }
 
-    // FUNZIONE SCHEMA MATRIMONIO AGGIORNATA SULL'ULTIMO FILE ODT
+    // MODIFICATA: Aggiunge un nuovo schema senza cancellare il precedente
     function applicaSchemaMatrimonio() {
-        if(!confirm("Questo caricherà lo schema matrimonio cancellando le righe vuote. Continuare?")) return;
+        const timestamp = Date.now(); // Prefisso unico per ogni blocco matrimonio
         
         const schema = [
-            { h: "01", t: "SPOSO:" },
-            { h: "02", t: "TEL:" },
-            { h: "03", t: "VIA:" },
-            { h: "04", t: "SPOSA:" },
-            { h: "05", t: "TEL:" },
-            { h: "06", t: "VIA:" },
-            { h: "07", t: "CHIESA" },
-            { h: "08", t: "SALA" },
-            { h: "09", t: "ESTERNI" },
-            { h: "10", t: "NOTE" }
+            { id: "m" + timestamp + "_1", t: "SPOSO: " },
+            { id: "m" + timestamp + "_2", t: "TEL: " },
+            { id: "m" + timestamp + "_3", t: "VIA: " },
+            { id: "m" + timestamp + "_4", t: "SPOSA: " },
+            { id: "m" + timestamp + "_5", t: "TEL: " },
+            { id: "m" + timestamp + "_6", t: "VIA: " },
+            { id: "m" + timestamp + "_7", t: "CHIESA: " },
+            { id: "m" + timestamp + "_8", t: "SALA: " },
+            { id: "m" + timestamp + "_9", t: "ESTERNI: " },
+            { id: "m" + timestamp + "_10", t: "NOTE: " }
         ];
 
-        db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ________________");
+        // Se non c'è ancora un titolo, ne mettiamo uno generico
+        db.ref('titoli/'+giornoCorrente).once('value', s => {
+            if(!s.val()) db.ref('titoli/'+giornoCorrente).set("MATRIMONI DEL GIORNO");
+        });
         
         schema.forEach(item => {
-            db.ref(`agenda/${giornoCorrente}/m${item.h}`).set({
-                h: item.h,
+            db.ref(`agenda/${giornoCorrente}/${item.id}`).set({
+                h: "00:00",
                 t: item.t,
                 c: 'def'
             });
         });
         
         closeModal('mainModal');
-        alert("Schema caricato!");
     }
 
-    // NUOVA FUNZIONE PER AGGIUNGERE RIGHE EXTRA
     function aggiungiRigaExtra() {
         const id = "ex" + Date.now();
-        db.ref(`agenda/${giornoCorrente}/${id}`).set({
-            h: "00:00",
-            t: "",
-            c: "def"
-        });
+        db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def" });
     }
 
     function salvaCampo(id, campo, valore, oraDefault) {
@@ -276,12 +274,18 @@
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
-        const impegni = Object.values(datiGiorno).filter(item => item.t && item.t.trim() !== "").sort((a,b) => cleanH(a.h) - cleanH(b.h));
+        const impegni = Object.keys(datiGiorno).map(k => ({...datiGiorno[k], id: k}))
+            .filter(item => item.t && item.t.trim() !== "")
+            .sort((a,b) => {
+                let diff = cleanH(a.h) - cleanH(b.h);
+                return diff !== 0 ? diff : a.id.localeCompare(b.id);
+            });
+            
         if(impegni.length === 0) { messaggio += "Nessun impegno in programma."; } else { impegni.forEach(item => { messaggio += `• ${item.t}\n`; }); }
         if (navigator.share) { navigator.share({ title: 'Agenda ' + giornoCorrente, text: messaggio }); } else { prompt("Copia gli appuntamenti:", messaggio); }
     }
 
-    function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
+    function del(id) { if(confirm("Eliminare questa riga?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
     function toggleVista(v) { 
         document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; 
@@ -305,7 +309,7 @@
         }
         alert("Fatto!"); closeModal('repModal');
     }
-    function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
+    function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare tutto il giorno ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
     window.onload = initCalendar;
 </script>
 </body>
