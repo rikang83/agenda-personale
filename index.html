@@ -26,11 +26,11 @@
         .day-item.nat-holiday { background: #ffcdd2 !important; color: var(--festivo-dark) !important; border: 1px solid var(--festivo); }
         .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
         .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .slot-main { display: flex; gap: 10px; align-items: flex-start; } /* Cambiato in flex-start per allineare l'ora in alto se la nota cresce */
+        .slot-main { display: flex; gap: 10px; align-items: flex-start; }
         .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { display: none; }
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
-        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; resize: none; outline: none; overflow: hidden; } /* Aggiunto overflow:hidden */
+        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 35px; resize: none; outline: none; overflow: hidden; }
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
         .dot.active { border-color: #333; transform: scale(1.1); }
@@ -45,6 +45,9 @@
         .fest-label { font-size: 7px; color: var(--festivo-dark); font-weight: bold; display: block; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
+        
+        /* Stile per il tasto FLOTTANTE AGGIUNGI */
+        .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -66,6 +69,7 @@
     <div class="calendar-strip" id="strip"></div>
     <input type="text" id="titoloGiorno" class="day-title" placeholder="TITOLO GIORNATA" onblur="salvaTitolo(this.value)">
     <div id="listaImpegni"></div>
+    <button class="fab-add" id="btnAddExtra" onclick="aggiungiRigaExtra()">+</button>
 </div>
 
 <div id="vMese" style="display:none;">
@@ -77,7 +81,8 @@
 
 <div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <h3>Manutenzione Giorno</h3>
+        <h3 style="text-align:center;">Opzioni Giorno</h3>
+        <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px;">CARICA SCHEMA MATRIMONIO</button>
         <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold;">RESET TOTALE OGGI</button>
     </div>
 </div>
@@ -208,10 +213,50 @@
                         <button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px;">🗑️</button>
                     </div>`;
                 container.appendChild(div);
-                // Trigger iniziale per righe già piene
                 const tx = div.querySelector('textarea');
                 autoResize(tx);
             }
+        });
+    }
+
+    // FUNZIONE SCHEMA MATRIMONIO AGGIORNATA SULL'ULTIMO FILE ODT
+    function applicaSchemaMatrimonio() {
+        if(!confirm("Questo caricherà lo schema matrimonio cancellando le righe vuote. Continuare?")) return;
+        
+        const schema = [
+            { h: "01", t: "SPOSO:" },
+            { h: "02", t: "TEL:" },
+            { h: "03", t: "VIA:" },
+            { h: "04", t: "SPOSA:" },
+            { h: "05", t: "TEL:" },
+            { h: "06", t: "VIA:" },
+            { h: "07", t: "CHIESA" },
+            { h: "08", t: "SALA" },
+            { h: "09", t: "ESTERNI" },
+            { h: "10", t: "NOTE" }
+        ];
+
+        db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ________________");
+        
+        schema.forEach(item => {
+            db.ref(`agenda/${giornoCorrente}/m${item.h}`).set({
+                h: item.h,
+                t: item.t,
+                c: 'def'
+            });
+        });
+        
+        closeModal('mainModal');
+        alert("Schema caricato!");
+    }
+
+    // NUOVA FUNZIONE PER AGGIUNGERE RIGHE EXTRA
+    function aggiungiRigaExtra() {
+        const id = "ex" + Date.now();
+        db.ref(`agenda/${giornoCorrente}/${id}`).set({
+            h: "00:00",
+            t: "",
+            c: "def"
         });
     }
 
@@ -232,13 +277,17 @@
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
         const impegni = Object.values(datiGiorno).filter(item => item.t && item.t.trim() !== "").sort((a,b) => cleanH(a.h) - cleanH(b.h));
-        if(impegni.length === 0) { messaggio += "Nessun impegno in programma."; } else { impegni.forEach(item => { messaggio += `• *${item.h}*: ${item.t}\n`; }); }
+        if(impegni.length === 0) { messaggio += "Nessun impegno in programma."; } else { impegni.forEach(item => { messaggio += `• ${item.t}\n`; }); }
         if (navigator.share) { navigator.share({ title: 'Agenda ' + giornoCorrente, text: messaggio }); } else { prompt("Copia gli appuntamenti:", messaggio); }
     }
 
     function del(id) { if(confirm("Eliminare?")) db.ref(`agenda/${giornoCorrente}/${id}`).remove(); }
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
-    function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; }
+    function toggleVista(v) { 
+        document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; 
+        document.getElementById('vMese').style.display = v==='m'?'block':'none'; 
+        document.getElementById('btnAddExtra').style.display = v==='g'?'flex':'none';
+    }
     function openModal(id) { document.getElementById(id).style.display='flex'; }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
     function openRepModal() { document.getElementById('repDataFine').value = giornoCorrente; openModal('repModal'); }
