@@ -30,7 +30,10 @@
         .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { display: none; }
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
-        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; }
+        
+        .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
+        .nota-input::placeholder { color: #000; font-weight: bold; opacity: 1; }
+        
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
         .dot.active { border-color: #333; transform: scale(1.1); }
@@ -47,13 +50,10 @@
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
         .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
         
-        /* STILI SPECIFICI SCHEMA MATRIMONIO */
         .wedding-container { width: 100%; display: flex; flex-direction: column; gap: 5px; }
         .wedding-row-split { display: flex; gap: 5px; width: 100%; }
-        .f-main { flex: 2; font-weight: bold; color: #000; }
-        .f-tel { flex: 1; font-weight: bold; color: #000; }
-        .f-full { width: 100%; font-weight: bold; color: #000; }
-        .nota-input::placeholder { color: #000; font-weight: bold; opacity: 1; }
+        .f-main { flex: 2; }
+        .f-tel { flex: 1; }
     </style>
 </head>
 <body>
@@ -196,7 +196,7 @@
         });
 
         const sorted = Object.values(visualizzazione).sort((a,b) => {
-            let diff = a.sort - b.sort;
+            let diff = (a.sort || 0) - (b.sort || 0);
             return diff !== 0 ? diff : a.id.localeCompare(b.id);
         });
 
@@ -207,7 +207,6 @@
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
                 
                 let contentHTML = "";
-                // Logica Macro-Blocco Sposo/Sposa
                 if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
                     const telId = item.id + "_tel";
                     const viaId = item.id + "_via";
@@ -224,11 +223,11 @@
                                     <textarea class="nota-input f-main" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
                                     <textarea class="nota-input f-tel" placeholder="TEL:" oninput="autoResize(this)" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
                                 </div>
-                                <textarea class="nota-input f-full" placeholder="VIA:" oninput="autoResize(this)" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
+                                <textarea class="nota-input" style="width:100%" placeholder="VIA:" oninput="autoResize(this)" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
                             </div>
                         </div>`;
                 } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) {
-                    return; // Campi interni gestiti dal blocco principale
+                    return;
                 } else {
                     contentHTML = `
                         <div class="slot-main">
@@ -246,27 +245,28 @@
                     </div>`;
                 
                 container.appendChild(div);
-                div.querySelectorAll('textarea').forEach(el => { autoResize(el); });
+                div.querySelectorAll('textarea').forEach(autoResize);
             }
         });
     }
 
     function applicaSchemaMatrimonio() {
         const timestamp = Date.now();
-        document.getElementById('checkRighe').checked = false;
+        document.getElementById('checkRighe').checked = false; 
         
         const schema = [
-            { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true },
-            { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true },
-            { id: "m" + timestamp + "_3", t: "CHIESA: ", isWed: true },
-            { id: "m" + timestamp + "_4", t: "SALA: ", isWed: true },
-            { id: "m" + timestamp + "_5", t: "ESTERNI: ", isWed: true },
-            { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true }
+            { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true, s: 1 },
+            { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true, s: 2 },
+            { id: "m" + timestamp + "_3", t: "CHIESA: ", isWed: true, s: 3 },
+            { id: "m" + timestamp + "_4", t: "SALA: ", isWed: true, s: 4 },
+            { id: "m" + timestamp + "_5", t: "ESTERNI: ", isWed: true, s: 5 },
+            { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true, s: 6 }
         ];
 
-        db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ________________");
+        // Rimosso la linea dopo "MATRIMONIO A"
+        db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ");
         schema.forEach(item => {
-            db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", t: item.t, c: 'def', isWed: true });
+            db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", t: item.t, c: 'def', isWed: true, sort: item.s });
         });
         closeModal('mainModal');
     }
@@ -279,7 +279,7 @@
 
     function aggiungiRigaExtra() {
         const id = "ex" + Date.now();
-        db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def" });
+        db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def", sort: 999 });
     }
 
     function cambiaColore(id, c, oraDefault) { db.ref(`agenda/${giornoCorrente}/${id}`).update({ c: c, h: oraDefault }); }
