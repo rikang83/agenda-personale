@@ -32,7 +32,6 @@
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
-        .nota-input::placeholder { color: #000; font-weight: bold; opacity: 1; }
         
         .color-dots { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; }
         .dot { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
@@ -120,6 +119,15 @@
     function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
     function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
+    // Gestione cursore protetto per TEL: e VIA:
+    function handleLabelInput(el, label) {
+        if (!el.value.startsWith(label)) { el.value = label + " "; }
+        autoResize(el);
+    }
+    function checkLabelSelection(el, label) {
+        if (el.selectionStart < label.length) { el.setSelectionRange(label.length, label.length); }
+    }
+
     function initCalendar() {
         const mp = document.getElementById('monthPicker');
         if(!mp.options.length) {
@@ -186,19 +194,16 @@
         if(mostraTutteRighe) {
             orariFissi.forEach(h => {
                 const id = "h" + h.replace(":", "");
-                visualizzazione[id] = { id: id, h: h, t: "", c: "def", sort: cleanH(h) };
+                visualizzazione[id] = { id: id, h: h, t: "", c: "def", sortKey: cleanH(h) };
             });
         }
         
         Object.keys(datiGiorno).forEach(key => {
             const item = datiGiorno[key];
-            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sort: cleanH(item.h), isWed: item.isWed };
+            visualizzazione[key] = { id: key, h: item.h || "00:00", t: item.t || "", c: item.c || "def", sortKey: item.sort || cleanH(item.h), isWed: item.isWed };
         });
 
-        const sorted = Object.values(visualizzazione).sort((a,b) => {
-            let diff = (a.sort || 0) - (b.sort || 0);
-            return diff !== 0 ? diff : a.id.localeCompare(b.id);
-        });
+        const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
 
         sorted.forEach((item) => {
             if(item.t || mostraTutteRighe) {
@@ -210,8 +215,8 @@
                 if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
                     const telId = item.id + "_tel";
                     const viaId = item.id + "_via";
-                    const telVal = datiGiorno[telId] ? datiGiorno[telId].t : "";
-                    const viaVal = datiGiorno[viaId] ? datiGiorno[viaId].t : "";
+                    const telVal = (datiGiorno[telId] ? datiGiorno[telId].t : "TEL: ").trim() || "TEL:";
+                    const viaVal = (datiGiorno[viaId] ? datiGiorno[viaId].t : "VIA: ").trim() || "VIA:";
                     
                     contentHTML = `
                         <div class="slot-main">
@@ -221,9 +226,9 @@
                             <div class="wedding-container">
                                 <div class="wedding-row-split">
                                     <textarea class="nota-input f-main" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
-                                    <textarea class="nota-input f-tel" placeholder="TEL:" oninput="autoResize(this)" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
+                                    <textarea class="nota-input f-tel" oninput="handleLabelInput(this, 'TEL:')" onfocus="checkLabelSelection(this, 'TEL:')" onclick="checkLabelSelection(this, 'TEL:')" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
                                 </div>
-                                <textarea class="nota-input" style="width:100%" placeholder="VIA:" oninput="autoResize(this)" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
+                                <textarea class="nota-input" oninput="handleLabelInput(this, 'VIA:')" onfocus="checkLabelSelection(this, 'VIA:')" onclick="checkLabelSelection(this, 'VIA:')" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
                             </div>
                         </div>`;
                 } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) {
@@ -248,12 +253,26 @@
                 div.querySelectorAll('textarea').forEach(autoResize);
             }
         });
+        
+        // Gestione tasto TAB per spostarsi tra campi
+        container.querySelectorAll('textarea').forEach((ta, idx, array) => {
+            ta.addEventListener('keydown', e => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const next = array[idx + 1] || array[0];
+                    next.focus();
+                    // Sposta cursore alla fine
+                    const val = next.value;
+                    next.value = '';
+                    next.value = val;
+                }
+            });
+        });
     }
 
     function applicaSchemaMatrimonio() {
         const timestamp = Date.now();
         document.getElementById('checkRighe').checked = false; 
-        
         const schema = [
             { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true, s: 1 },
             { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true, s: 2 },
@@ -262,17 +281,19 @@
             { id: "m" + timestamp + "_5", t: "ESTERNI: ", isWed: true, s: 5 },
             { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true, s: 6 }
         ];
-
-        // Rimosso la linea dopo "MATRIMONIO A"
         db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ");
         schema.forEach(item => {
             db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", t: item.t, c: 'def', isWed: true, sort: item.s });
+            if (item.t.includes("SPOS")) {
+                db.ref(`agenda/${giornoCorrente}/${item.id}_tel`).set({ h: "00:00", t: "TEL: ", c: 'def', isSub: true, sort: item.s + 0.1 });
+                db.ref(`agenda/${giornoCorrente}/${item.id}_via`).set({ h: "00:00", t: "VIA: ", c: 'def', isSub: true, sort: item.s + 0.2 });
+            }
         });
         closeModal('mainModal');
     }
 
     function salvaCampo(id, campo, valore, oraDefault, isSub = false) {
-        const updates = { t: valore, h: oraDefault, c: 'def' };
+        const updates = { [campo]: valore, h: oraDefault, c: 'def' };
         if(isSub) updates.isSub = true;
         db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
@@ -302,14 +323,32 @@
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
-        const impegni = Object.keys(datiGiorno).filter(k => !k.endsWith("_tel") && !k.endsWith("_via")).map(k => {
-            let text = datiGiorno[k].t;
-            if(datiGiorno[k+"_tel"]) text += " Tel: " + datiGiorno[k+"_tel"].t;
-            if(datiGiorno[k+"_via"]) text += " Via: " + datiGiorno[k+"_via"].t;
-            return text;
+        
+        // Ordiniamo gli impegni per la condivisione
+        const keys = Object.keys(datiGiorno).sort((a,b) => (datiGiorno[a].sort||0) - (datiGiorno[b].sort||0));
+        
+        keys.forEach(k => {
+            const item = datiGiorno[k];
+            if (item.isSub) return; // Non scriviamo tel/via come righe separate
+            if (!item.t || item.t.trim().length < 3) return;
+
+            messaggio += `• ${item.h !== "00:00" ? '*' + item.h + '* ' : ''}${item.t}\n`;
+            
+            // Se è Sposo o Sposa, cerca i sub-campi tel e via
+            if (datiGiorno[k+"_tel"] && datiGiorno[k+"_tel"].t.length > 5) {
+                messaggio += `  📞 ${datiGiorno[k+"_tel"].t}\n`;
+            }
+            if (datiGiorno[k+"_via"] && datiGiorno[k+"_via"].t.length > 5) {
+                messaggio += `  📍 ${datiGiorno[k+"_via"].t}\n`;
+            }
         });
-        impegni.forEach(i => { if(i.trim()) messaggio += `• ${i}\n`; });
-        navigator.share ? navigator.share({ title: titolo, text: messaggio }) : prompt("Copia:", messaggio);
+
+        if (navigator.share) {
+            navigator.share({ title: titolo, text: messaggio });
+        } else {
+            const url = `https://wa.me/?text=${encodeURIComponent(messaggio)}`;
+            window.open(url, '_blank');
+        }
     }
 
     function eseguiRipetizione() {
