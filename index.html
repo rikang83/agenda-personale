@@ -25,7 +25,8 @@
         .day-item.holiday { background: #ffebee !important; color: var(--festivo) !important; }
         .day-item.nat-holiday { background: #ffcdd2 !important; color: var(--festivo-dark) !important; border: 1px solid var(--festivo); }
         .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
-        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.3s; }
+        .slot.new-row { background: #e3f2fd; border-left: 10px solid var(--r); }
         .slot-main { display: flex; gap: 10px; align-items: flex-start; }
         .ora-box { width: 75px; flex-shrink: 0; }
         .ora-box.hidden { display: none; }
@@ -191,7 +192,6 @@
         if(att) { att.classList.add('active'); if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"}); }
         db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
         
-        // Carica configurazioni specifiche del giorno
         db.ref('config/'+data).on('value', s => {
             const conf = s.val() || {};
             document.getElementById('checkOrarioLabel').checked = conf.mostraOra !== false;
@@ -233,6 +233,9 @@
             if(item.t || mostraTutteRighe || item.isAdmin || item.id.startsWith("ex")) {
                 const div = document.createElement('div');
                 div.className = "slot";
+                // Stile speciale per le nuove righe aggiunte col "+"
+                if(item.id.startsWith("ex") && !item.t) { div.classList.add('new-row'); }
+                div.id = "slot-" + item.id;
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
                 
                 let contentHTML = "";
@@ -285,7 +288,7 @@
                 else {
                     contentHTML = `<div class="slot-main">
                         <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}"><input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div>
-                        <textarea class="nota-input" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
+                        <textarea class="nota-input" onfocus="this.parentElement.parentElement.classList.remove('new-row')" oninput="autoResize(this)" placeholder="${item.id.startsWith('ex') ? '✏️ Scrivi qui...' : ''}" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
                     </div>`;
                 }
 
@@ -302,10 +305,7 @@
 
     function applicaSchemaMatrimonio() {
         const timestamp = Date.now();
-        
-        // Spegne ORA e RIGHE solo per questo giorno nel DB
         db.ref('config/'+giornoCorrente).update({ mostraOra: false, mostraRighe: false });
-
         const schema = [
             { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true, s: 1 },
             { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true, s: 2 },
@@ -338,7 +338,13 @@
 
     function aggiungiRigaExtra() {
         const id = "ex" + Date.now();
-        db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def", sort: 999 });
+        db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def", sort: 999 }).then(() => {
+            // Scorri la pagina per centrare la nuova riga
+            setTimeout(() => {
+                const el = document.getElementById('slot-' + id);
+                if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        });
     }
 
     function cambiaColore(id, c, oraDefault) { 
