@@ -72,7 +72,7 @@
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
         <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
-        <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
+        <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="salvaStatoRighe(this.checked)"><span class="slider"></span></label></div>
         <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="salvaStatoOra(this.checked)"><span class="slider"></span></label></div>
         <button class="nav-btn" style="background:#0d47a1; border:none;" onclick="condividiTesto()">CONDIVIDI</button>
         <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">AZIONI</button>
@@ -191,19 +191,19 @@
         if(att) { att.classList.add('active'); if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"}); }
         db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
         
-        // Carica lo stato dell'ora per questo giorno specifico
-        db.ref('config/'+data+'/mostraOra').on('value', s => {
-            const stato = s.val() !== null ? s.val() : true; // Default acceso se non esiste
-            document.getElementById('checkOrarioLabel').checked = stato;
+        // Carica configurazioni specifiche del giorno
+        db.ref('config/'+data).on('value', s => {
+            const conf = s.val() || {};
+            document.getElementById('checkOrarioLabel').checked = conf.mostraOra !== false;
+            document.getElementById('checkRighe').checked = conf.mostraRighe !== false;
             renderGiorno();
         });
 
         db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
     }
 
-    function salvaStatoOra(val) {
-        db.ref('config/'+giornoCorrente).update({ mostraOra: val });
-    }
+    function salvaStatoOra(val) { db.ref('config/'+giornoCorrente).update({ mostraOra: val }); }
+    function salvaStatoRighe(val) { db.ref('config/'+giornoCorrente).update({ mostraRighe: val }); }
 
     function renderGiorno() {
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
@@ -302,10 +302,9 @@
 
     function applicaSchemaMatrimonio() {
         const timestamp = Date.now();
-        document.getElementById('checkRighe').checked = false; 
         
-        // Spegne l'ora solo per questo giorno salvando la scelta nel DB
-        salvaStatoOra(false);
+        // Spegne ORA e RIGHE solo per questo giorno nel DB
+        db.ref('config/'+giornoCorrente).update({ mostraOra: false, mostraRighe: false });
 
         const schema = [
             { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true, s: 1 },
