@@ -73,7 +73,7 @@
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
         <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
         <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
-        <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="renderGiorno()"><span class="slider"></span></label></div>
+        <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="salvaStatoOra(this.checked)"><span class="slider"></span></label></div>
         <button class="nav-btn" style="background:#0d47a1; border:none;" onclick="condividiTesto()">CONDIVIDI</button>
         <button class="nav-btn" style="background:var(--festivo); border:none;" onclick="openModal('mainModal')">AZIONI</button>
     </div>
@@ -181,20 +181,35 @@
     }
 
     function selezionaGiorno(data, scroll = false) {
-        if(giornoCorrente) db.ref('agenda/'+giornoCorrente).off();
+        if(giornoCorrente) {
+            db.ref('agenda/'+giornoCorrente).off();
+            db.ref('config/'+giornoCorrente).off();
+        }
         giornoCorrente = data;
         document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
         const att = document.getElementById('st-'+data);
         if(att) { att.classList.add('active'); if(scroll) att.scrollIntoView({inline:"center", behavior:"auto"}); }
         db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
+        
+        // Carica lo stato dell'ora per questo giorno specifico
+        db.ref('config/'+data+'/mostraOra').on('value', s => {
+            const stato = s.val() !== null ? s.val() : true; // Default acceso se non esiste
+            document.getElementById('checkOrarioLabel').checked = stato;
+            renderGiorno();
+        });
+
         db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
+    }
+
+    function salvaStatoOra(val) {
+        db.ref('config/'+giornoCorrente).update({ mostraOra: val });
     }
 
     function renderGiorno() {
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
         
         const container = document.getElementById('listaImpegni');
-        const scrollPos = window.scrollY; // Salva posizione
+        const scrollPos = window.scrollY;
         container.innerHTML = "";
         
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
@@ -282,12 +297,16 @@
                 div.querySelectorAll('textarea').forEach(autoResize);
             }
         });
-        window.scrollTo(0, scrollPos); // Ripristina posizione
+        window.scrollTo(0, scrollPos);
     }
 
     function applicaSchemaMatrimonio() {
         const timestamp = Date.now();
         document.getElementById('checkRighe').checked = false; 
+        
+        // Spegne l'ora solo per questo giorno salvando la scelta nel DB
+        salvaStatoOra(false);
+
         const schema = [
             { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true, s: 1 },
             { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true, s: 2 },
@@ -374,7 +393,7 @@
         closeModal('repModal');
     }
 
-    function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); } }
+    function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); } }
     window.onload = initCalendar;
 </script>
 </body>
