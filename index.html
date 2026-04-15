@@ -32,7 +32,6 @@
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
         
-        /* BLOCCO ADMIN POTENZIATO */
         .admin-block { background: #fdfdfd; border: 2px solid #bbb; border-radius: 10px; padding: 12px; margin-top: 5px; }
         .admin-top-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .admin-grid { display: grid; grid-template-columns: 100px 85px 125px auto; gap: 10px; align-items: center; }
@@ -88,7 +87,7 @@
 </div>
 
 <div id="vMese" style="display:none;">
-    <div class="grid-mese">
+    <div class="grid-mese" id="corpoMeseHead">
         <div class="nome-giorno">LUN</div><div class="nome-giorno">MAR</div><div class="nome-giorno">MER</div><div class="nome-giorno">GIO</div><div class="nome-giorno">VEN</div><div class="nome-giorno">SAB</div><div class="nome-giorno">DOM</div>
     </div>
     <div class="grid-mese" id="corpoMese"></div>
@@ -192,9 +191,12 @@
     }
 
     function renderGiorno() {
-        const container = document.getElementById('listaImpegni');
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
+        
+        const container = document.getElementById('listaImpegni');
+        const scrollPos = window.scrollY; // Salva posizione
         container.innerHTML = "";
+        
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
         
@@ -207,13 +209,13 @@
         }
         Object.keys(datiGiorno).forEach(key => {
             const item = datiGiorno[key];
-            visualizzazione[key] = { id: key, ...item, sortKey: item.sort || cleanH(item.h) };
+            visualizzazione[key] = { id: key, ...item, sortKey: item.sort || cleanH(item.h) || 999 };
         });
 
         const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
 
         sorted.forEach((item) => {
-            if(item.t || mostraTutteRighe || item.isAdmin) {
+            if(item.t || mostraTutteRighe || item.isAdmin || item.id.startsWith("ex")) {
                 const div = document.createElement('div');
                 div.className = "slot";
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
@@ -229,7 +231,7 @@
                             <div class="admin-item" style="font-size:12px">OPERATORE <input type="text" class="input-adm input-op" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div>
                         </div>
                         <div class="admin-grid">
-                            <div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head" id="label-dinamica">INFO</div><div class="admin-label-head">CHI</div>`;
+                            <div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head">INFO</div><div class="admin-label-head">CHI</div>`;
                     
                     for(let i=1; i<=6; i++) {
                         const rowLab = i===1 ? "1° ACCONTO" : i+"° ACCONTO";
@@ -244,7 +246,6 @@
                             <div class="adm-dots">
                                 ${['ric','a','d'].map(k => {
                                     const active = item['chi'+i]===k;
-                                    // Logica per deflaggare se già attivo
                                     const clickAction = active ? `db.ref('agenda/${giornoCorrente}/${item.id}/chi${i}').remove()` : `db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})`;
                                     return `<div class="dot-s ${active?'active':''}" style="background:${colMap[k][0]}" onclick="${clickAction}">${colMap[k][1]}</div>`;
                                 }).join('')}
@@ -281,6 +282,7 @@
                 div.querySelectorAll('textarea').forEach(autoResize);
             }
         });
+        window.scrollTo(0, scrollPos); // Ripristina posizione
     }
 
     function applicaSchemaMatrimonio() {
@@ -311,7 +313,7 @@
     }
 
     function salvaCampo(id, campo, valore, oraDefault, isSub = false) {
-        const updates = { [campo]: valore, h: oraDefault, c: 'def' };
+        const updates = { [campo]: valore, h: oraDefault };
         if(isSub) updates.isSub = true;
         db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
