@@ -25,7 +25,7 @@
         .day-item.holiday { background: #ffebee !important; color: var(--festivo) !important; }
         .day-item.nat-holiday { background: #ffcdd2 !important; color: var(--festivo-dark) !important; border: 1px solid var(--festivo); }
         .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
-        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.3s; }
+        .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.3s; position: relative; }
         .slot.new-row { background: #e3f2fd; border-left: 10px solid var(--r); }
         .slot-main { display: flex; gap: 10px; align-items: flex-start; }
         .ora-box { width: 75px; flex-shrink: 0; }
@@ -33,6 +33,10 @@
         .ora-input { width: 100%; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-weight: bold; text-align: center; background: #f8f9fa; color: var(--p); }
         .nota-input { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 15px; min-height: 38px; resize: none; outline: none; overflow: hidden; display: block; width: 100%; box-sizing: border-box; color: #000; font-weight: bold; }
         
+        .esterni-grid { display: grid; grid-template-columns: 75px 1fr; gap: 6px; background: #f1f8e9; padding: 12px; border-radius: 10px; border: 2px solid #c5e1a5; width: 100%; box-sizing: border-box; }
+        .esterni-header-label { font-size: 13px; font-weight: 900; color: #388e3c; margin-bottom: 4px; grid-column: span 2; }
+        .loc-input { border: 1px solid #c5e1a5; border-radius: 6px; padding: 8px; font-size: 14px; font-weight: bold; background: white; }
+
         .admin-block { background: #fdfdfd; border: 2px solid #bbb; border-radius: 10px; padding: 12px; margin-top: 5px; }
         .admin-top-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 12px; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .admin-grid { display: grid; grid-template-columns: 100px 85px 125px auto; gap: 10px; align-items: center; }
@@ -58,7 +62,9 @@
         .fest-label { font-size: 7px; color: var(--festivo-dark); font-weight: bold; display: block; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-box { background: white; width: 92%; max-width: 420px; padding: 25px; border-radius: 20px; }
-        .fab-add { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1500; cursor: pointer; }
+        
+        .fab-add { position: fixed; bottom: 85px; right: 15px; width: 56px; height: 56px; background: var(--r); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 3px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.4); z-index: 1500; cursor: pointer; }
+        
         .wedding-container { width: 100%; display: flex; flex-direction: column; gap: 5px; }
         .wedding-row-split { display: flex; gap: 5px; width: 100%; }
         .f-main { flex: 2; }
@@ -83,7 +89,7 @@
 <div id="vGiorno">
     <div class="calendar-strip" id="strip"></div>
     <input type="text" id="titoloGiorno" class="day-title" placeholder="TITOLO GIORNATA" onblur="salvaTitolo(this.value)">
-    <div id="listaImpegni"></div>
+    <div id="listaImpegni" style="padding-bottom: 100px;"></div>
     <button class="fab-add" id="btnAddExtra" onclick="aggiungiRigaExtra()">+</button>
 </div>
 
@@ -129,12 +135,51 @@
     function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
     function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
+    function posizionaCursoreFine(el) {
+        setTimeout(() => {
+            const len = el.value.length;
+            el.setSelectionRange(len, len);
+        }, 10);
+    }
+
     function handleLabelInput(el, label) {
         if (!el.value.startsWith(label)) { el.value = label + " "; }
         autoResize(el);
     }
     function checkLabelSelection(el, label) {
         if (el.selectionStart < label.length) { el.setSelectionRange(label.length, label.length); }
+    }
+
+    // GESTIONE SWIPE PER IL MESE
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const vMese = document.getElementById('vMese');
+
+    vMese.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+    vMese.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
+
+    function handleSwipe() {
+        const threshold = 50;
+        const mp = document.getElementById('monthPicker');
+        let currentIndex = mp.selectedIndex;
+
+        if (touchEndX < touchStartX - threshold) {
+            // Swipe a Sinistra -> Mese Successivo
+            if (currentIndex < mp.options.length - 1) {
+                mp.selectedIndex = currentIndex + 1;
+                initCalendar();
+            }
+        }
+        if (touchEndX > touchStartX + threshold) {
+            // Swipe a Destra -> Mese Precedente
+            if (currentIndex > 0) {
+                mp.selectedIndex = currentIndex - 1;
+                initCalendar();
+            }
+        }
     }
 
     function initCalendar() {
@@ -229,11 +274,12 @@
 
         const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
 
+        let tIdx = 10; 
+
         sorted.forEach((item) => {
             if(item.t || mostraTutteRighe || item.isAdmin || item.id.startsWith("ex")) {
                 const div = document.createElement('div');
                 div.className = "slot";
-                // Stile speciale per le nuove righe aggiunte col "+"
                 if(item.id.startsWith("ex") && !item.t) { div.classList.add('new-row'); }
                 div.id = "slot-" + item.id;
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
@@ -270,25 +316,38 @@
                             </div>`;
                     }
                     contentHTML += `</div></div>`;
-                } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:"))) {
+                } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:") || item.t.startsWith("CHIESA:"))) {
+                    const isChurch = item.t.startsWith("CHIESA:");
                     const telId = item.id + "_tel";
                     const viaId = item.id + "_via";
                     const telVal = (datiGiorno[telId] ? datiGiorno[telId].t : "TEL: ").trim() || "TEL:";
                     const viaVal = (datiGiorno[viaId] ? datiGiorno[viaId].t : "VIA: ").trim() || "VIA:";
+                    
                     contentHTML = `<div class="slot-main">
-                        <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}"><input type="text" class="ora-input" value="${item.h}"></div>
+                        <div class="ora-box"><input type="text" class="ora-input" tabindex="${tIdx++}" value="${item.h==="00:00"?"":item.h}" placeholder="00:00" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div>
                         <div class="wedding-container">
                             <div class="wedding-row-split">
-                                <textarea class="nota-input f-main" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
-                                <textarea class="nota-input f-tel" oninput="handleLabelInput(this, 'TEL:')" onfocus="checkLabelSelection(this, 'TEL:')" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>
+                                <textarea class="nota-input f-main" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this)" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
+                                ${!isChurch ? `<textarea class="nota-input f-tel" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this); checkLabelSelection(this, 'TEL:')" oninput="handleLabelInput(this, 'TEL:')" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>` : ''}
                             </div>
-                            <textarea class="nota-input" oninput="handleLabelInput(this, 'VIA:')" onfocus="checkLabelSelection(this, 'VIA:')" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>
+                            ${!isChurch ? `<textarea class="nota-input" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this); checkLabelSelection(this, 'VIA:')" oninput="handleLabelInput(this, 'VIA:')" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>` : ''}
                         </div></div>`;
+                } else if(item.isWed && item.t.startsWith("ESTERNI:")) {
+                    contentHTML = `<div class="slot-main">
+                        <div class="esterni-grid">
+                            <div class="esterni-header-label">ESTERNI</div>
+                            ${[1,2,3,4,5].map(i => `
+                                <input type="text" placeholder="Ora" tabindex="${tIdx++}" class="loc-input" style="width:70px; text-align:center" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value})">
+                                <input type="text" placeholder="Location ${i}" tabindex="${tIdx++}" class="loc-input" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">
+                            `).join('')}
+                        </div>
+                    </div>`;
                 } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) { return; } 
                 else {
+                    const hideOra = !mostraEtichettaOra && !item.isWed;
                     contentHTML = `<div class="slot-main">
-                        <div class="ora-box ${mostraEtichettaOra ? '' : 'hidden'}"><input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div>
-                        <textarea class="nota-input" onfocus="this.parentElement.parentElement.classList.remove('new-row')" oninput="autoResize(this)" placeholder="${item.id.startsWith('ex') ? '✏️ Scrivi qui...' : ''}" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
+                        <div class="ora-box ${hideOra ? 'hidden' : ''}"><input type="text" class="ora-input" tabindex="${tIdx++}" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div>
+                        <textarea class="nota-input" tabindex="${tIdx++}" onfocus="this.parentElement.parentElement.classList.remove('new-row')" oninput="autoResize(this)" placeholder="${item.id.startsWith('ex') ? '✏️ Scrivi qui...' : ''}" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
                     </div>`;
                 }
 
@@ -307,12 +366,12 @@
         const timestamp = Date.now();
         db.ref('config/'+giornoCorrente).update({ mostraOra: false, mostraRighe: false });
         const schema = [
-            { id: "m" + timestamp + "_1", t: "SPOSO: ", isWed: true, s: 1 },
-            { id: "m" + timestamp + "_2", t: "SPOSA: ", isWed: true, s: 2 },
-            { id: "m" + timestamp + "_3", t: "CHIESA: ", isWed: true, s: 3 },
-            { id: "m" + timestamp + "_4", t: "SALA: ", isWed: true, s: 4 },
-            { id: "m" + timestamp + "_5", t: "ESTERNI: ", isWed: true, s: 5 },
-            { id: "m" + timestamp + "_6", t: "NOTE: ", isWed: true, s: 6 },
+            { id: "m" + timestamp + "_1", t: "SPOSO: ", h: "00:00", isWed: true, s: 1 },
+            { id: "m" + timestamp + "_2", t: "SPOSA: ", h: "00:00", isWed: true, s: 2 },
+            { id: "m" + timestamp + "_3", t: "CHIESA: ", h: "00:00", isWed: true, s: 3 },
+            { id: "m" + timestamp + "_4", t: "SALA: ", h: "", isWed: true, s: 4 },
+            { id: "m" + timestamp + "_5", t: "ESTERNI:", h: "", isWed: true, s: 5 },
+            { id: "m" + timestamp + "_6", t: "NOTE: ", h: "", isWed: true, s: 6 },
             { id: "adm_" + timestamp, isAdmin: true, s: 7 } 
         ];
         db.ref('titoli/'+giornoCorrente).set("MATRIMONIO A ");
@@ -320,10 +379,12 @@
             if(item.isAdmin) {
                 db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", isAdmin: true, sort: item.s, contratto: false, foto: false, video: false, operatore: "" });
             } else {
-                db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: "00:00", t: item.t, c: 'def', isWed: true, sort: item.s });
-                if (item.t.includes("SPOS")) {
-                    db.ref(`agenda/${giornoCorrente}/${item.id}_tel`).set({ h: "00:00", t: "TEL: ", c: 'def', isSub: true, sort: item.s + 0.1 });
-                    db.ref(`agenda/${giornoCorrente}/${item.id}_via`).set({ h: "00:00", t: "VIA: ", c: 'def', isSub: true, sort: item.s + 0.2 });
+                db.ref(`agenda/${giornoCorrente}/${item.id}`).set({ h: item.h, t: item.t, c: 'def', isWed: true, sort: item.s });
+                if (item.t.includes("SPOS") || item.t.includes("CHIESA")) {
+                    if(!item.t.includes("CHIESA")) {
+                        db.ref(`agenda/${giornoCorrente}/${item.id}_tel`).set({ h: item.h, t: "TEL: ", c: 'def', isSub: true, sort: item.s + 0.1 });
+                        db.ref(`agenda/${giornoCorrente}/${item.id}_via`).set({ h: item.h, t: "VIA: ", c: 'def', isSub: true, sort: item.s + 0.2 });
+                    }
                 }
             }
         });
@@ -331,7 +392,8 @@
     }
 
     function salvaCampo(id, campo, valore, oraDefault, isSub = false) {
-        const updates = { [campo]: valore, h: oraDefault };
+        const updates = { [campo]: valore };
+        if(oraDefault !== undefined) updates.h = oraDefault;
         if(isSub) updates.isSub = true;
         db.ref(`agenda/${giornoCorrente}/${id}`).update(updates);
     }
@@ -339,7 +401,6 @@
     function aggiungiRigaExtra() {
         const id = "ex" + Date.now();
         db.ref(`agenda/${giornoCorrente}/${id}`).set({ h: "00:00", t: "", c: "def", sort: 999 }).then(() => {
-            // Scorri la pagina per centrare la nuova riga
             setTimeout(() => {
                 const el = document.getElementById('slot-' + id);
                 if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -377,7 +438,12 @@
             const item = datiGiorno[k];
             if (item.isSub || item.isAdmin) return; 
             if (!item.t || item.t.trim().length < 3) return;
-            messaggio += `• ${item.h !== "00:00" ? '*' + item.h + '* ' : ''}${item.t}\n`;
+            messaggio += `• ${item.h && item.h !== "00:00" ? '*' + item.h + '* ' : ''}${item.t}\n`;
+            if(item.t.startsWith("ESTERNI:")) {
+                for(let i=1; i<=5; i++) {
+                    if(item['loc_t'+i]) messaggio += `   - ${item['loc_h'+i]||''} ${item['loc_t'+i]}\n`;
+                }
+            }
             if (datiGiorno[k+"_tel"] && datiGiorno[k+"_tel"].t.length > 5) messaggio += `   📞 ${datiGiorno[k+"_tel"].t}\n`;
             if (datiGiorno[k+"_via"] && datiGiorno[k+"_via"].t.length > 5) messaggio += `   📍 ${datiGiorno[k+"_via"].t}\n`;
         });
