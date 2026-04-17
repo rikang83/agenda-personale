@@ -10,6 +10,23 @@
         :root { --p: #1a237e; --r: #2196f3; --a: #4caf50; --festivo: #d32f2f; --festivo-dark: #b71c1c; --evidenza: #fffbe6; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
+        
+        /* STILE SELETTORE MESE INGRANDITO E CENTRATO */
+        #monthPicker { 
+            width: 95%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-bottom: 5px; 
+            font-size: 20px; 
+            font-weight: 900; 
+            text-align: center; 
+            text-align-last: center; /* Per centratura su vari browser */
+            appearance: none; /* Rimuove freccia standard per pulizia, opzionale */
+            background: white;
+            border: none;
+            color: var(--p);
+        }
+
         .nav-buttons { display: flex; justify-content: center; gap: 5px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
         .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 6px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; }
         .master-switch { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); padding: 5px 8px; border-radius: 20px; border: 1px solid white; font-size: 9px; }
@@ -74,7 +91,7 @@
 <body>
 
 <div class="header">
-    <select id="monthPicker" onchange="initCalendar()" style="width:90%; padding:8px; border-radius:8px; margin-bottom:5px;"></select>
+    <select id="monthPicker" onchange="initCalendar()"></select>
     <div class="nav-buttons">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
@@ -167,14 +184,12 @@
         let currentIndex = mp.selectedIndex;
 
         if (touchEndX < touchStartX - threshold) {
-            // Swipe a Sinistra -> Mese Successivo
             if (currentIndex < mp.options.length - 1) {
                 mp.selectedIndex = currentIndex + 1;
                 initCalendar();
             }
         }
         if (touchEndX > touchStartX + threshold) {
-            // Swipe a Destra -> Mese Precedente
             if (currentIndex > 0) {
                 mp.selectedIndex = currentIndex - 1;
                 initCalendar();
