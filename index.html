@@ -11,7 +11,6 @@
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
         .header { background: var(--p); color: white; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 1000; }
         
-        /* STILE SELETTORE MESE INGRANDITO E CENTRATO */
         #monthPicker { 
             width: 95%; 
             padding: 12px; 
@@ -20,8 +19,8 @@
             font-size: 20px; 
             font-weight: 900; 
             text-align: center; 
-            text-align-last: center; /* Per centratura su vari browser */
-            appearance: none; /* Rimuove freccia standard per pulizia, opzionale */
+            text-align-last: center; 
+            appearance: none; 
             background: white;
             border: none;
             color: var(--p);
@@ -86,6 +85,9 @@
         .wedding-row-split { display: flex; gap: 5px; width: 100%; }
         .f-main { flex: 2; }
         .f-tel { flex: 1; }
+
+        .dot-day-rep { width: 35px; height: 35px; border-radius: 50%; background: #eee; color: #666; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; cursor: pointer; border: 1px solid #ddd; }
+        .dot-day-rep.active { background: var(--r); color: white; border-color: var(--p); }
     </style>
 </head>
 <body>
@@ -128,13 +130,25 @@
 <div id="repModal" class="overlay" onclick="closeModal('repModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
         <h3 style="margin-top:0; text-align:center;">Gestione Impegni</h3>
-        <input type="text" id="repTesto" placeholder="Cosa scrivere?" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+        <input type="text" id="repTesto" placeholder="Cosa scrivere?" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; box-sizing: border-box;">
         <div style="display:flex; gap:10px; margin-top:10px;">
             <select id="repHInizio" style="flex:1; padding:10px; border-radius:8px;"></select>
             <select id="repHFine" style="flex:1; padding:10px; border-radius:8px;"></select>
         </div>
-        <input type="date" id="repDataFine" style="width:100%; padding:12px; margin-top:10px; border-radius:8px; border:1px solid #ddd;">
-        <button onclick="eseguiRipetizione()" style="width:100%; padding:14px; background:var(--a); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">APPLICA</button>
+        <div style="font-size:11px; font-weight:bold; color:var(--p); margin-top:15px;">RIPETI NEI GIORNI:</div>
+        <div style="display:flex; justify-content:space-between; margin:10px 0;">
+            <div class="dot-day-rep" onclick="toggleRepDay(this, 1)">L</div>
+            <div class="dot-day-rep" onclick="toggleRepDay(this, 2)">M</div>
+            <div class="dot-day-rep" onclick="toggleRepDay(this, 3)">M</div>
+            <div class="dot-day-rep" onclick="toggleRepDay(this, 4)">G</div>
+            <div class="dot-day-rep" onclick="toggleRepDay(this, 5)">V</div>
+            <div class="dot-day-rep" onclick="toggleRepDay(this, 6)">S</div>
+            <div class="dot-day-rep" onclick="toggleRepDay(this, 0)">D</div>
+        </div>
+        <div style="font-size:11px; font-weight:bold; color:var(--p);">FINO AL GIORNO:</div>
+        <input type="date" id="repDataFine" style="width:100%; padding:12px; margin-top:5px; border-radius:8px; border:1px solid #ddd; box-sizing: border-box;">
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:14px; background:var(--a); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">APPLICA RIPETIZIONE</button>
+        <button onclick="cancellaRipetizioniInBlocco()" style="width:100%; padding:10px; background:none; color:var(--festivo); border:2px solid var(--festivo); border-radius:12px; font-weight:bold; margin-top:10px; width:100%;">CANCELLA IN BLOCCO (DA OGGI)</button>
     </div>
 </div>
 
@@ -145,6 +159,7 @@
 
     let giornoCorrente = "";
     let datiGiorno = {};
+    let giorniSelezionatiRep = [];
     const orariFissi = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
     const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
     const festivi2026 = { "01-01":"Capodanno", "01-06":"Epifania", "04-05":"Pasqua", "04-06":"Pasquetta", "04-25":"Liberazione", "05-01":"Festa Lavoro", "06-02":"Festa Rep.", "08-15":"Ferragosto", "11-01":"Ognissanti", "12-08":"Immacolata", "12-25":"Natale", "12-26":"S. Stefano" };
@@ -167,7 +182,6 @@
         if (el.selectionStart < label.length) { el.setSelectionRange(label.length, label.length); }
     }
 
-    // GESTIONE SWIPE PER IL MESE
     let touchStartX = 0;
     let touchEndX = 0;
     const vMese = document.getElementById('vMese');
@@ -182,7 +196,6 @@
         const threshold = 50;
         const mp = document.getElementById('monthPicker');
         let currentIndex = mp.selectedIndex;
-
         if (touchEndX < touchStartX - threshold) {
             if (currentIndex < mp.options.length - 1) {
                 mp.selectedIndex = currentIndex + 1;
@@ -267,14 +280,11 @@
 
     function renderGiorno() {
         if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
-        
         const container = document.getElementById('listaImpegni');
         const scrollPos = window.scrollY;
         container.innerHTML = "";
-        
         const mostraTutteRighe = document.getElementById('checkRighe').checked;
         const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
-        
         let visualizzazione = {};
         if(mostraTutteRighe) {
             orariFissi.forEach(h => {
@@ -288,11 +298,10 @@
         });
 
         const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
-
         let tIdx = 10; 
 
         sorted.forEach((item) => {
-            if(item.t || mostraTutteRighe || item.isAdmin || item.id.startsWith("ex")) {
+            if(item.t || mostraTutteRighe || item.isAdmin || item.id.startsWith("ex") || item.id.startsWith("rep_")) {
                 const div = document.createElement('div');
                 div.className = "slot";
                 if(item.id.startsWith("ex") && !item.t) { div.classList.add('new-row'); }
@@ -300,70 +309,31 @@
                 div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
                 
                 let contentHTML = "";
-                
                 if(item.isAdmin) {
-                    contentHTML = `<div class="admin-block">
-                        <div class="admin-top-row">
-                            <div class="admin-item" style="font-size:12px">CONTRATTO <input type="checkbox" style="width:20px;height:20px" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div>
-                            <div class="admin-item" style="font-size:12px">FOTO <input type="checkbox" style="width:20px;height:20px" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div>
-                            <div class="admin-item" style="font-size:12px">VIDEO <input type="checkbox" style="width:20px;height:20px" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div>
-                            <div class="admin-item" style="font-size:12px">OPERATORE <input type="text" class="input-adm input-op" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div>
-                        </div>
-                        <div class="admin-grid">
-                            <div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head">INFO</div><div class="admin-label-head">CHI</div>`;
-                    
+                    contentHTML = `<div class="admin-block"><div class="admin-top-row">
+                        <div class="admin-item" style="font-size:12px">CONTRATTO <input type="checkbox" style="width:20px;height:20px" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div>
+                        <div class="admin-item" style="font-size:12px">FOTO <input type="checkbox" style="width:20px;height:20px" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div>
+                        <div class="admin-item" style="font-size:12px">VIDEO <input type="checkbox" style="width:20px;height:20px" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div>
+                        <div class="admin-item" style="font-size:12px">OPERATORE <input type="text" class="input-adm input-op" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div>
+                    </div><div class="admin-grid"><div class="admin-label-head">DESCRIZIONE</div><div class="admin-label-head">IMPORTO</div><div class="admin-label-head">INFO</div><div class="admin-label-head">CHI</div>`;
                     for(let i=1; i<=6; i++) {
                         const rowLab = i===1 ? "1° ACCONTO" : i+"° ACCONTO";
                         const infoLab = i===1 ? "NUM.SCONTR.FISC." : "DATA";
-                        contentHTML += `
-                            <div class="admin-label-row">${rowLab}</div>
-                            <input type="number" class="input-adm" style="width:75px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})">
-                            <div style="display:flex; flex-direction:column;">
-                                <span style="font-size:8px; color:#666; font-weight:900;">${infoLab}</span>
-                                <input type="text" class="input-adm" style="width:115px" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})">
-                            </div>
-                            <div class="adm-dots">
-                                ${['ric','a','d'].map(k => {
-                                    const active = item['chi'+i]===k;
-                                    const clickAction = active ? `db.ref('agenda/${giornoCorrente}/${item.id}/chi${i}').remove()` : `db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})`;
-                                    return `<div class="dot-s ${active?'active':''}" style="background:${colMap[k][0]}" onclick="${clickAction}">${colMap[k][1]}</div>`;
-                                }).join('')}
-                            </div>`;
+                        contentHTML += `<div class="admin-label-row">${rowLab}</div><input type="number" class="input-adm" style="width:75px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})"><div style="display:flex; flex-direction:column;"><span style="font-size:8px; color:#666; font-weight:900;">${infoLab}</span><input type="text" class="input-adm" style="width:115px" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})"></div><div class="adm-dots">${['ric','a','d'].map(k => { const active = item['chi'+i]===k; const clickAction = active ? `db.ref('agenda/${giornoCorrente}/${item.id}/chi${i}').remove()` : `db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})`; return `<div class="dot-s ${active?'active':''}" style="background:${colMap[k][0]}" onclick="${clickAction}">${colMap[k][1]}</div>`; }).join('')}</div>`;
                     }
                     contentHTML += `</div></div>`;
                 } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:") || item.t.startsWith("CHIESA:"))) {
                     const isChurch = item.t.startsWith("CHIESA:");
-                    const telId = item.id + "_tel";
-                    const viaId = item.id + "_via";
+                    const telId = item.id + "_tel"; const viaId = item.id + "_via";
                     const telVal = (datiGiorno[telId] ? datiGiorno[telId].t : "TEL: ").trim() || "TEL:";
                     const viaVal = (datiGiorno[viaId] ? datiGiorno[viaId].t : "VIA: ").trim() || "VIA:";
-                    
-                    contentHTML = `<div class="slot-main">
-                        <div class="ora-box"><input type="text" class="ora-input" tabindex="${tIdx++}" value="${item.h==="00:00"?"":item.h}" placeholder="00:00" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div>
-                        <div class="wedding-container">
-                            <div class="wedding-row-split">
-                                <textarea class="nota-input f-main" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this)" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
-                                ${!isChurch ? `<textarea class="nota-input f-tel" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this); checkLabelSelection(this, 'TEL:')" oninput="handleLabelInput(this, 'TEL:')" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>` : ''}
-                            </div>
-                            ${!isChurch ? `<textarea class="nota-input" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this); checkLabelSelection(this, 'VIA:')" oninput="handleLabelInput(this, 'VIA:')" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>` : ''}
-                        </div></div>`;
+                    contentHTML = `<div class="slot-main"><div class="ora-box"><input type="text" class="ora-input" tabindex="${tIdx++}" value="${item.h==="00:00"?"":item.h}" placeholder="00:00" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div><div class="wedding-container"><div class="wedding-row-split"><textarea class="nota-input f-main" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this)" oninput="autoResize(this)" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>${!isChurch ? `<textarea class="nota-input f-tel" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this); checkLabelSelection(this, 'TEL:')" oninput="handleLabelInput(this, 'TEL:')" onblur="salvaCampo('${telId}', 't', this.value, '${item.h}', true)">${telVal}</textarea>` : ''}</div>${!isChurch ? `<textarea class="nota-input" tabindex="${tIdx++}" onfocus="posizionaCursoreFine(this); checkLabelSelection(this, 'VIA:')" oninput="handleLabelInput(this, 'VIA:')" onblur="salvaCampo('${viaId}', 't', this.value, '${item.h}', true)">${viaVal}</textarea>` : ''}</div></div>`;
                 } else if(item.isWed && item.t.startsWith("ESTERNI:")) {
-                    contentHTML = `<div class="slot-main">
-                        <div class="esterni-grid">
-                            <div class="esterni-header-label">ESTERNI</div>
-                            ${[1,2,3,4,5].map(i => `
-                                <input type="text" placeholder="Ora" tabindex="${tIdx++}" class="loc-input" style="width:70px; text-align:center" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value})">
-                                <input type="text" placeholder="Location ${i}" tabindex="${tIdx++}" class="loc-input" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">
-                            `).join('')}
-                        </div>
-                    </div>`;
+                    contentHTML = `<div class="slot-main"><div class="esterni-grid"><div class="esterni-header-label">ESTERNI</div>${[1,2,3,4,5].map(i => `<input type="text" placeholder="Ora" tabindex="${tIdx++}" class="loc-input" style="width:70px; text-align:center" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value})"><input type="text" placeholder="Location ${i}" tabindex="${tIdx++}" class="loc-input" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">`).join('')}</div></div>`;
                 } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) { return; } 
                 else {
                     const hideOra = !mostraEtichettaOra && !item.isWed;
-                    contentHTML = `<div class="slot-main">
-                        <div class="ora-box ${hideOra ? 'hidden' : ''}"><input type="text" class="ora-input" tabindex="${tIdx++}" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div>
-                        <textarea class="nota-input" tabindex="${tIdx++}" onfocus="this.parentElement.parentElement.classList.remove('new-row')" oninput="autoResize(this)" placeholder="${item.id.startsWith('ex') ? '✏️ Scrivi qui...' : ''}" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea>
-                    </div>`;
+                    contentHTML = `<div class="slot-main"><div class="ora-box ${hideOra ? 'hidden' : ''}"><input type="text" class="ora-input" tabindex="${tIdx++}" value="${item.h}" onblur="salvaCampo('${item.id}', 'h', this.value, '${item.h}')"></div><textarea class="nota-input" tabindex="${tIdx++}" onfocus="this.parentElement.parentElement.classList.remove('new-row')" oninput="autoResize(this)" placeholder="${item.id.startsWith('ex') ? '✏️ Scrivi qui...' : ''}" onblur="salvaCampo('${item.id}', 't', this.value, '${item.h}')">${item.t}</textarea></div>`;
                 }
 
                 div.innerHTML = contentHTML + `<div class="color-dots">
@@ -436,6 +406,16 @@
             db.ref(`agenda/${giornoCorrente}/${id}_via`).remove();
         }
     }
+
+    function pulisciTuttoGiorno(iso, event) {
+        if(event) event.stopPropagation();
+        if(confirm("Svuotare completamente la giornata del " + iso + "?")) {
+            db.ref('agenda/'+iso).remove();
+            db.ref('titoli/'+iso).remove();
+            db.ref('config/'+iso).remove();
+        }
+    }
+
     function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
     function toggleVista(v) { 
         document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; 
@@ -443,8 +423,55 @@
     }
     function openModal(id) { document.getElementById(id).style.display='flex'; }
     function closeModal(id) { document.getElementById(id).style.display='none'; }
-    function openRepModal() { document.getElementById('repDataFine').value = giornoCorrente; openModal('repModal'); }
-    
+
+    // GESTIONE RIPETIZIONE
+    function toggleRepDay(el, d) {
+        if(giorniSelezionatiRep.includes(d)) {
+            giorniSelezionatiRep = giorniSelezionatiRep.filter(x => x !== d);
+            el.classList.remove('active');
+        } else {
+            giorniSelezionatiRep.push(d);
+            el.classList.add('active');
+        }
+    }
+
+    function openRepModal() {
+        document.getElementById('repTesto').value = "";
+        document.getElementById('repDataFine').value = giornoCorrente;
+        giorniSelezionatiRep = [];
+        document.querySelectorAll('.dot-day-rep').forEach(d => d.classList.remove('active'));
+        openModal('repModal');
+    }
+
+    function eseguiRipetizione() {
+        const t = document.getElementById('repTesto').value, h = document.getElementById('repHInizio').value, df = document.getElementById('repDataFine').value;
+        if(!t || !df || giorniSelezionatiRep.length === 0) return alert("Mancano dati o giorni!");
+        let cur = new Date(giornoCorrente), fine = new Date(df);
+        while(cur <= fine) {
+            if(giorniSelezionatiRep.includes(cur.getDay())) {
+                let iso = cur.toISOString().split('T')[0];
+                db.ref(`agenda/${iso}/rep_${Date.now()}_${cur.getTime()}`).set({h:h, t:t, c:'def', sort:cleanH(h)});
+            }
+            cur.setDate(cur.getDate()+1);
+        }
+        closeModal('repModal');
+    }
+
+    function cancellaRipetizioniInBlocco() {
+        const df = document.getElementById('repDataFine').value;
+        if(!df || !confirm("Cancellare TUTTI gli impegni ricorrenti creati tra oggi e la data selezionata?")) return;
+        let cur = new Date(giornoCorrente), fine = new Date(df);
+        while(cur <= fine) {
+            let iso = cur.toISOString().split('T')[0];
+            db.ref(`agenda/${iso}`).once('value', s => {
+                let d = s.val();
+                if(d) Object.keys(d).forEach(k => { if(k.startsWith('rep_')) db.ref(`agenda/${iso}/${k}`).remove(); });
+            });
+            cur.setDate(cur.getDate()+1);
+        }
+        closeModal('repModal');
+    }
+
     function condividiTesto() {
         const titolo = document.getElementById('titoloGiorno').value || "Agenda";
         let messaggio = `📅 *${titolo}* (${giornoCorrente})\n\n`;
@@ -454,32 +481,15 @@
             if (item.isSub || item.isAdmin) return; 
             if (!item.t || item.t.trim().length < 3) return;
             messaggio += `• ${item.h && item.h !== "00:00" ? '*' + item.h + '* ' : ''}${item.t}\n`;
-            if(item.t.startsWith("ESTERNI:")) {
-                for(let i=1; i<=5; i++) {
-                    if(item['loc_t'+i]) messaggio += `   - ${item['loc_h'+i]||''} ${item['loc_t'+i]}\n`;
-                }
-            }
-            if (datiGiorno[k+"_tel"] && datiGiorno[k+"_tel"].t.length > 5) messaggio += `   📞 ${datiGiorno[k+"_tel"].t}\n`;
-            if (datiGiorno[k+"_via"] && datiGiorno[k+"_via"].t.length > 5) messaggio += `   📍 ${datiGiorno[k+"_via"].t}\n`;
         });
-        window.open(`https://wa.me/?text=${encodeURIComponent(messaggio)}`, '_blank');
-    }
-
-    function eseguiRipetizione() {
-        const testo = document.getElementById('repTesto').value;
-        const hInizio = cleanH(document.getElementById('repHInizio').value);
-        const hFine = cleanH(document.getElementById('repHFine').value);
-        const dataFine = document.getElementById('repDataFine').value;
-        let d = new Date(giornoCorrente);
-        while(d <= new Date(dataFine)) {
-            const iso = d.toISOString().split('T')[0];
-            orariFissi.forEach(h => { if(cleanH(h) >= hInizio && cleanH(h) <= hFine) db.ref(`agenda/${iso}/h${h.replace(":","")}`).update({ h: h, t: testo, c: 'def' }); });
-            d.setDate(d.getDate() + 1);
+        if(navigator.share) {
+            navigator.share({ title: titolo, text: messaggio });
+        } else {
+            alert("Copiato negli appunti!");
+            navigator.clipboard.writeText(messaggio);
         }
-        closeModal('repModal');
     }
 
-    function pulisciTuttoGiorno(iso, event) { if(event) event.stopPropagation(); if(confirm(`Svuotare ${iso}?`)) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); } }
     window.onload = initCalendar;
 </script>
 </body>
