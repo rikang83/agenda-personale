@@ -267,3 +267,38 @@ function fetchAndDraw() {
     });
 }
 window.onload = initCalendar;
+/* --- AGGIUNTA CHIRURGICA: SWIPE PER CAMBIO MESE --- */
+let touchstartX = 0;
+let touchendX = 0;
+
+const vMeseArea = document.getElementById('vMese');
+
+vMeseArea.addEventListener('touchstart', e => {
+    touchstartX = e.changedTouches[0].screenX;
+}, false);
+
+vMeseArea.addEventListener('touchend', e => {
+    touchendX = e.changedTouches[0].screenX;
+    handleGesture();
+}, false);
+
+function handleGesture() {
+    const picker = document.getElementById('monthPicker');
+    let currentIndex = picker.selectedIndex;
+
+    if (touchendX < touchstartX - 70) {
+        // Swipe verso SINISTRA -> Mese Successivo
+        if (currentIndex < picker.options.length - 1) {
+            picker.selectedIndex = currentIndex + 1;
+            initCalendar(); // Ricarica la vista
+        }
+    }
+    
+    if (touchendX > touchstartX + 70) {
+        // Swipe verso DESTRA -> Mese Precedente
+        if (currentIndex > 0) {
+            picker.selectedIndex = currentIndex - 1;
+            initCalendar(); // Ricarica la vista
+        }
+    }
+}
