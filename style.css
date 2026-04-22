@@ -35,6 +35,28 @@ input:checked + .slider:before { transform: translateX(14px); }
 
 .day-title { width: 100%; padding: 15px; border: none; background: var(--evidenza); font-weight: bold; text-align: center; font-size: 16px; border-bottom: 2px solid #ffe082; box-sizing: border-box; outline: none; }
 
+/* --- TITOLI EDITABILI INTERNI AGLI SCHEMI --- */
+.titolo-schema-editabile {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    text-align: center;
+    border: none;
+    color: white;
+    text-transform: uppercase;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+    display: block;
+}
+.bg-matrimonio { background: var(--p); }
+.bg-battesimo { background: var(--battesimo); }
+.titolo-schema-editabile::placeholder { color: rgba(255,255,255,0.5); }
+
 .slot { background: white; margin: 8px 10px; padding: 10px; border-radius: 12px; border-left: 10px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
 .slot.new-row { background: #e3f2fd; border-left: 10px solid var(--r); }
 .slot-main { display: flex; gap: 10px; align-items: flex-start; }
@@ -71,24 +93,8 @@ input:checked + .slider:before { transform: translateX(14px); }
 .dot-day-rep { width: 35px; height: 35px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .dot-day-rep.active { background: var(--r); color: white; }
 
-/* --- STILI TITOLI MODIFICABILI (MATRIMONIO E BATTESIMO) --- */
-#titoloMatrimonio {
-    width: 100%; padding: 12px; background: var(--p); color: white; 
-    border: none; border-radius: 8px; font-weight: bold; text-align: center; 
-    box-sizing: border-box; margin-bottom: 5px; text-transform: uppercase; outline: none;
-}
-#titoloMatrimonio::placeholder { color: rgba(255,255,255,0.6); font-weight: normal; }
-
-#titoloBattesimo {
-    width: 100%; padding: 12px; background: var(--battesimo); color: white; 
-    border: none; border-radius: 8px; font-weight: bold; text-align: center; 
-    box-sizing: border-box; margin-bottom: 5px; text-transform: uppercase; outline: none;
-}
-#titoloBattesimo::placeholder { color: rgba(255,255,255,0.6); font-weight: normal; }
-
-
 /* ============================================================
-   SEZIONE DEFINITIVA VISTA MESE E MOBILE (CORREZIONE CHIRURGICA)
+   SEZIONE DEFINITIVA VISTA MESE E MOBILE
    ============================================================ */
 
 #vMese {
