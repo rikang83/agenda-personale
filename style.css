@@ -71,8 +71,21 @@ input:checked + .slider:before { transform: translateX(14px); }
 .dot-day-rep { width: 35px; height: 35px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .dot-day-rep.active { background: var(--r); color: white; }
 
-.macro-battesimo { background: #e1f5fe; border: 3px solid var(--battesimo); border-radius: 15px; padding: 15px; margin: 10px; }
-.titolo-battesimo { background: var(--battesimo); color: white; text-align: center; padding: 10px; border-radius: 10px; font-weight: 900; letter-spacing: 2px; margin-bottom: 15px; font-size: 18px; }
+/* --- STILI TITOLI MODIFICABILI (MATRIMONIO E BATTESIMO) --- */
+#titoloMatrimonio {
+    width: 100%; padding: 12px; background: var(--p); color: white; 
+    border: none; border-radius: 8px; font-weight: bold; text-align: center; 
+    box-sizing: border-box; margin-bottom: 5px; text-transform: uppercase; outline: none;
+}
+#titoloMatrimonio::placeholder { color: rgba(255,255,255,0.6); font-weight: normal; }
+
+#titoloBattesimo {
+    width: 100%; padding: 12px; background: var(--battesimo); color: white; 
+    border: none; border-radius: 8px; font-weight: bold; text-align: center; 
+    box-sizing: border-box; margin-bottom: 5px; text-transform: uppercase; outline: none;
+}
+#titoloBattesimo::placeholder { color: rgba(255,255,255,0.6); font-weight: normal; }
+
 
 /* ============================================================
    SEZIONE DEFINITIVA VISTA MESE E MOBILE (CORREZIONE CHIRURGICA)
@@ -162,9 +175,9 @@ input:checked + .slider:before { transform: translateX(14px); }
 .titolo-festivo { background: #d32f2f !important; color: white !important; }
 
 .label-festivo { 
-    font-size: 9px !important; /* Leggermente più grande */
-    color: #ffffff; /* Testo bianco */
-    background: var(--festivo); /* Sfondo rosso per massima leggibilità */
+    font-size: 9px !important; 
+    color: #ffffff; 
+    background: var(--festivo); 
     font-weight: 900; 
     text-align: center; 
     border-radius: 3px;
