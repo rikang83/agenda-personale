@@ -120,7 +120,6 @@ function selezionaGiorno(data, scroll = false) {
     if(giornoCorrente) { 
         db.ref('agenda/'+giornoCorrente).off(); 
         db.ref('config/'+giornoCorrente).off(); 
-        db.ref('titoli_speciali/'+giornoCorrente).off();
     }
     giornoCorrente = data;
     document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
@@ -131,12 +130,6 @@ function selezionaGiorno(data, scroll = false) {
     }
     
     db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
-    
-    db.ref('titoli_speciali/'+data).on('value', s => {
-        const spec = s.val() || {};
-        document.getElementById('titoloMatrimonio').value = spec.matrimonio || "MATRIMONIO";
-        document.getElementById('titoloBattesimo').value = spec.battesimo || "BATTESIMO";
-    });
 
     db.ref('config/'+data).on('value', s => {
         const conf = s.val() || {};
@@ -146,9 +139,6 @@ function selezionaGiorno(data, scroll = false) {
     });
     db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
 }
-
-function salvaTitoloMatrimonio(v) { if(giornoCorrente) db.ref('titoli_speciali/'+giornoCorrente).update({matrimonio: v.toUpperCase()}); }
-function salvaTitoloBattesimo(v) { if(giornoCorrente) db.ref('titoli_speciali/'+giornoCorrente).update({battesimo: v.toUpperCase()}); }
 
 function renderGiorno() {
     const active = document.activeElement;
@@ -164,7 +154,6 @@ function renderGiorno() {
     sorted.forEach((item) => {
         if(item.t || mostraTutteRighe || item.isAdmin || item.isBattesimoBlock || item.id.startsWith("ex") || item.id.startsWith("rep_")) {
             
-            // --- BLOCCO BATTESIMO ---
             if(item.isBattesimoBlock) {
                 const div = document.createElement('div'); div.className = "macro-battesimo";
                 div.innerHTML = `
@@ -204,12 +193,10 @@ function renderGiorno() {
                 container.appendChild(div); div.querySelectorAll('textarea').forEach(autoResize); return;
             }
 
-            // --- BLOCCO SLOT NORMALI E MATRIMONIO ---
             const div = document.createElement('div'); div.className = "slot"; div.id = "slot-" + item.id;
             div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
             let contentHTML = "";
 
-            // AGGIUNTA: Titolo editabile matrimonio interno allo schema
             if(item.isWed && item.t.startsWith("SPOSO:")) {
                 contentHTML += `<input type="text" class="titolo-schema-editabile bg-matrimonio" value="${item.titolo_mat || 'MATRIMONIO'}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_mat:this.value.toUpperCase()})">`;
             }
@@ -248,7 +235,9 @@ function aggiungiRigaExtra() { const id = "ex" + Date.now(); db.ref(`agenda/${gi
 function applicaSchemaMatrimonio() {
     const ts = Date.now(); 
     db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    const titSpec = document.getElementById('titoloMatrimonio').value || "MATRIMONIO";
+    
+    const titSpec = "MATRIMONIO"; // Valore predefinito fisso
+    
     db.ref('titoli/'+giornoCorrente).once('value', s => { 
         let tOld = s.val() || ""; 
         let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec + " A "; 
@@ -260,7 +249,7 @@ function applicaSchemaMatrimonio() {
         if(i.isAdmin) db.ref(`agenda/${giornoCorrente}/${i.id}`).set({h:"00:00", isAdmin:true, sort:i.s, contratto:false, foto:false, video:false, operatore:""}); 
         else { 
             let data = {h:(i.s<4?"00:00":""), t:i.t, c:'def', isWed:true, sort:i.s};
-            if(i.tit) data.titolo_mat = i.tit; // Salva il titolo interno nel primo record
+            if(i.tit) data.titolo_mat = i.tit; 
             db.ref(`agenda/${giornoCorrente}/${i.id}`).set(data); 
             if(i.t.includes("SPOS")) { 
                 db.ref(`agenda/${giornoCorrente}/${i.id}_tel`).set({h:"00:00", t:"TEL: ", c:'def', isSub:true, sort:i.s+0.1}); 
@@ -274,7 +263,9 @@ function applicaSchemaMatrimonio() {
 function applicaSchemaBattesimo() {
     const ts = Date.now(); 
     db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    const titSpec = document.getElementById('titoloBattesimo').value || "BATTESIMO";
+    
+    const titSpec = "BATTESIMO"; // Valore predefinito fisso
+    
     db.ref('titoli/'+giornoCorrente).once('value', s => { 
         let tOld = s.val() || ""; 
         let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec; 
@@ -289,7 +280,7 @@ function openRepModal() { document.getElementById('repTesto').value=""; document
 function toggleRepDay(el,d) { if(giorniSelezionatiRep.includes(d)) { giorniSelezionatiRep=giorniSelezionatiRep.filter(x=>x!==d); el.classList.remove('active'); } else { giorniSelezionatiRep.push(d); el.classList.add('active'); } }
 function eseguiRipetizione() { const t=document.getElementById('repTesto').value, h=document.getElementById('repHInizio').value, df=document.getElementById('repDataFine').value; if(!t||!df||giorniSelezionatiRep.length===0) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { if(giorniSelezionatiRep.includes(cur.getDay())) { db.ref(`agenda/${cur.toISOString().split('T')[0]}/rep_${Date.now()}_${cur.getTime()}`).set({h:h, t:t, c:'def', sort:cleanH(h)}); } cur.setDate(cur.getDate()+1); } closeModal('repModal'); }
 function cancellaRipetizioniInBlocco() { const df=document.getElementById('repDataFine').value; if(!df||!confirm("Eliminare?")) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { let iso=cur.toISOString().split('T')[0]; db.ref(`agenda/${iso}`).once('value', s=>{ let d=s.val(); if(d) Object.keys(d).forEach(k=>{ if(k.startsWith('rep_')) db.ref(`agenda/${iso}/${k}`).remove(); }); }); cur.setDate(cur.getDate()+1); } closeModal('repModal'); }
-function pulisciTuttoGiorno(iso, e) { if(e) e.stopPropagation(); if(confirm("Svuotare?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); db.ref('titoli_speciali/'+iso).remove(); } }
+function pulisciTuttoGiorno(iso, e) { if(e) e.stopPropagation(); if(confirm("Svuotare?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); } }
 
 function condividiWhatsApp() {
     if (!giornoCorrente) { alert("Seleziona prima un giorno."); return; }
