@@ -161,7 +161,18 @@ input:checked + .slider:before { transform: translateX(14px); }
 .titolo-battesimo-cat { background: #03a9f4 !important; color: white !important; }
 .titolo-festivo { background: #d32f2f !important; color: white !important; }
 
-.label-festivo { font-size: 7px; color: #d32f2f; font-weight: bold; text-align: center; }
+.label-festivo { 
+    font-size: 9px !important; /* Leggermente più grande */
+    color: #ffffff; /* Testo bianco */
+    background: var(--festivo); /* Sfondo rosso per massima leggibilità */
+    font-weight: 900; 
+    text-align: center; 
+    border-radius: 3px;
+    padding: 1px 2px;
+    margin-bottom: 4px;
+    display: block;
+    text-transform: uppercase;
+}
 
 .btn-icon-header {
     height: 40px;
