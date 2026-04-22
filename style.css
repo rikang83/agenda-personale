@@ -205,3 +205,95 @@ input:checked + .slider:before { transform: translateX(14px); }
     font-size: 20px;
     cursor: pointer;
 }
+/* --- NOTIFICHE & BADGE --- */
+.notif-container { position: relative; display: inline-block; }
+.badge {
+    position: absolute; top: -5px; right: -5px;
+    background: #ffeb3b; color: #000;
+    border-radius: 50%; width: 18px; height: 18px;
+    display: none; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold; border: 1.5px solid var(--p);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+#notif-list { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+
+/* --- MACRO BLOCCHI (BATTESIMO/MATRIMONIO) --- */
+.macro-battesimo {
+    background: #e1f5fe;
+    border: 3px solid var(--battesimo);
+    border-radius: 15px;
+    padding: 15px;
+    margin: 15px 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+/* --- STATISTICHE & GRAFICO --- */
+.chart-container {
+    width: 100%;
+    height: 300px;
+    margin-top: 20px;
+    position: relative;
+}
+
+.stats-summary {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.stat-box { font-size: 14px; font-weight: bold; }
+.stat-box span { display: block; font-size: 24px; color: var(--p); }
+
+/* --- PULSANTI MODALI --- */
+.btn-save-notif {
+    width: 100%;
+    padding: 15px;
+    background: var(--a);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 20px;
+    cursor: pointer;
+}
+
+.btn-close-modal {
+    background: #eee;
+    color: #666;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* --- FIX MOBILE SCROLL --- */
+.modal-box {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Nascondi la scrollbar ma mantieni lo scroll su Chrome/Safari */
+.calendar-strip::-webkit-scrollbar {
+    display: none;
+}
+.calendar-strip {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* --- LOGHI E ICONE --- */
+.ora-input::placeholder { color: #ccc; font-weight: normal; }
+.hidden { display: none !important; }
