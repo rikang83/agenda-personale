@@ -117,7 +117,11 @@ function initCalendar() {
 }
 
 function selezionaGiorno(data, scroll = false) {
-    if(giornoCorrente) { db.ref('agenda/'+giornoCorrente).off(); db.ref('config/'+giornoCorrente).off(); }
+    if(giornoCorrente) { 
+        db.ref('agenda/'+giornoCorrente).off(); 
+        db.ref('config/'+giornoCorrente).off(); 
+        db.ref('titoli_speciali/'+giornoCorrente).off();
+    }
     giornoCorrente = data;
     document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
     const att = document.getElementById('st-'+data); 
@@ -125,7 +129,17 @@ function selezionaGiorno(data, scroll = false) {
         att.classList.add('active'); 
         if(scroll) att.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     }
+    
+    // Carica Titolo Giornata
     db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
+    
+    // CARICAMENTO CHIRURGICO TITOLI SPECIALI (Matrimonio/Battesimo)
+    db.ref('titoli_speciali/'+data).on('value', s => {
+        const spec = s.val() || {};
+        document.getElementById('titoloMatrimonio').value = spec.matrimonio || "MATRIMONIO";
+        document.getElementById('titoloBattesimo').value = spec.battesimo || "BATTESIMO";
+    });
+
     db.ref('config/'+data).on('value', s => {
         const conf = s.val() || {};
         document.getElementById('checkOrarioLabel').checked = conf.mostraOra !== false;
@@ -134,6 +148,10 @@ function selezionaGiorno(data, scroll = false) {
     });
     db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
 }
+
+// NUOVE FUNZIONI SALVATAGGIO TITOLI SPECIALI
+function salvaTitoloMatrimonio(v) { if(giornoCorrente) db.ref('titoli_speciali/'+giornoCorrente).update({matrimonio: v.toUpperCase()}); }
+function salvaTitoloBattesimo(v) { if(giornoCorrente) db.ref('titoli_speciali/'+giornoCorrente).update({battesimo: v.toUpperCase()}); }
 
 function renderGiorno() {
     const active = document.activeElement;
@@ -189,17 +207,38 @@ function closeModal(id) { document.getElementById(id).style.display='none'; }
 function aggiungiRigaExtra() { const id = "ex" + Date.now(); db.ref(`agenda/${giornoCorrente}/${id}`).set({h:"00:00", t:"", c:"def", sort:999}); }
 
 function applicaSchemaMatrimonio() {
-    const ts = Date.now(); db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    db.ref('titoli/'+giornoCorrente).once('value', s => { let tOld = s.val() || ""; let tNew = tOld ? (tOld.includes("MATRIMONIO") ? tOld : tOld + " E MATRIMONIO") : "MATRIMONIO A "; db.ref('titoli/'+giornoCorrente).set(tNew); });
+    const ts = Date.now(); 
+    db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
+    
+    // Recupera il titolo personalizzato se esiste
+    const titSpec = document.getElementById('titoloMatrimonio').value || "MATRIMONIO";
+    
+    db.ref('titoli/'+giornoCorrente).once('value', s => { 
+        let tOld = s.val() || ""; 
+        let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec + " A "; 
+        db.ref('titoli/'+giornoCorrente).set(tNew); 
+    });
+    
     const sc = [{id:"m"+ts+"_1",t:"SPOSO: ",s:1},{id:"m"+ts+"_2",t:"SPOSA: ",s:2},{id:"m"+ts+"_3",t:"CHIESA: ",s:3},{id:"m"+ts+"_4",t:"SALA: ",s:4},{id:"m"+ts+"_5",t:"ESTERNI:",s:5},{id:"m"+ts+"_6",t:"NOTE: ",s:6},{id:"adm_"+ts,isAdmin:true,s:7}];
     sc.forEach(i => { if(i.isAdmin) db.ref(`agenda/${giornoCorrente}/${i.id}`).set({h:"00:00", isAdmin:true, sort:i.s, contratto:false, foto:false, video:false, operatore:""}); else { db.ref(`agenda/${giornoCorrente}/${i.id}`).set({h:(i.s<4?"00:00":""), t:i.t, c:'def', isWed:true, sort:i.s}); if(i.t.includes("SPOS")) { db.ref(`agenda/${giornoCorrente}/${i.id}_tel`).set({h:"00:00", t:"TEL: ", c:'def', isSub:true, sort:i.s+0.1}); db.ref(`agenda/${giornoCorrente}/${i.id}_via`).set({h:"00:00", t:"VIA: ", c:'def', isSub:true, sort:i.s+0.2}); } } });
     closeModal('mainModal');
 }
 
 function applicaSchemaBattesimo() {
-    const ts = Date.now(); db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    db.ref('titoli/'+giornoCorrente).once('value', s => { let tOld = s.val() || ""; let tNew = tOld ? (tOld.includes("BATTESIMO") ? tOld : tOld + " E BATTESIMO/I") : "BATTESIMO/I"; db.ref('titoli/'+giornoCorrente).set(tNew); });
-    const id = "bat_" + ts; db.ref(`agenda/${giornoCorrente}/${id}`).set({ isBattesimoBlock: true, sort: 1, titolo_bat: "BATTESIMO", cerimonia_h: "", cerimonia_t: "", cerimonia_c: "def", ricevimento_h: "", ricevimento_t: "", ricevimento_c: "def", note_t: "", note_c: "def", foto: false, op_foto: "", video: false, op_video: "", acc1: "", dat1: "", chi1: "def" });
+    const ts = Date.now(); 
+    db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
+    
+    // Recupera il titolo personalizzato se esiste
+    const titSpec = document.getElementById('titoloBattesimo').value || "BATTESIMO";
+    
+    db.ref('titoli/'+giornoCorrente).once('value', s => { 
+        let tOld = s.val() || ""; 
+        let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec; 
+        db.ref('titoli/'+giornoCorrente).set(tNew); 
+    });
+    
+    const id = "bat_" + ts; 
+    db.ref(`agenda/${giornoCorrente}/${id}`).set({ isBattesimoBlock: true, sort: 1, titolo_bat: titSpec, cerimonia_h: "", cerimonia_t: "", cerimonia_c: "def", ricevimento_h: "", ricevimento_t: "", ricevimento_c: "def", note_t: "", note_c: "def", foto: false, op_foto: "", video: false, op_video: "", acc1: "", dat1: "", chi1: "def" });
     closeModal('mainModal');
 }
 
@@ -207,7 +246,7 @@ function openRepModal() { document.getElementById('repTesto').value=""; document
 function toggleRepDay(el,d) { if(giorniSelezionatiRep.includes(d)) { giorniSelezionatiRep=giorniSelezionatiRep.filter(x=>x!==d); el.classList.remove('active'); } else { giorniSelezionatiRep.push(d); el.classList.add('active'); } }
 function eseguiRipetizione() { const t=document.getElementById('repTesto').value, h=document.getElementById('repHInizio').value, df=document.getElementById('repDataFine').value; if(!t||!df||giorniSelezionatiRep.length===0) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { if(giorniSelezionatiRep.includes(cur.getDay())) { db.ref(`agenda/${cur.toISOString().split('T')[0]}/rep_${Date.now()}_${cur.getTime()}`).set({h:h, t:t, c:'def', sort:cleanH(h)}); } cur.setDate(cur.getDate()+1); } closeModal('repModal'); }
 function cancellaRipetizioniInBlocco() { const df=document.getElementById('repDataFine').value; if(!df||!confirm("Eliminare?")) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { let iso=cur.toISOString().split('T')[0]; db.ref(`agenda/${iso}`).once('value', s=>{ let d=s.val(); if(d) Object.keys(d).forEach(k=>{ if(k.startsWith('rep_')) db.ref(`agenda/${iso}/${k}`).remove(); }); }); cur.setDate(cur.getDate()+1); } closeModal('repModal'); }
-function pulisciTuttoGiorno(iso, e) { if(e) e.stopPropagation(); if(confirm("Svuotare?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); } }
+function pulisciTuttoGiorno(iso, e) { if(e) e.stopPropagation(); if(confirm("Svuotare?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); db.ref('titoli_speciali/'+iso).remove(); } }
 
 function condividiWhatsApp() {
     if (!giornoCorrente) { alert("Seleziona prima un giorno."); return; }
@@ -267,38 +306,27 @@ function fetchAndDraw() {
     });
 }
 window.onload = initCalendar;
-/* --- AGGIUNTA CHIRURGICA: SWIPE PER CAMBIO MESE --- */
+
+/* --- SWIPE PER CAMBIO MESE --- */
 let touchstartX = 0;
 let touchendX = 0;
-
 const vMeseArea = document.getElementById('vMese');
-
-vMeseArea.addEventListener('touchstart', e => {
-    touchstartX = e.changedTouches[0].screenX;
-}, false);
-
-vMeseArea.addEventListener('touchend', e => {
-    touchendX = e.changedTouches[0].screenX;
-    handleGesture();
-}, false);
+vMeseArea.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, false);
+vMeseArea.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleGesture(); }, false);
 
 function handleGesture() {
     const picker = document.getElementById('monthPicker');
     let currentIndex = picker.selectedIndex;
-
     if (touchendX < touchstartX - 70) {
-        // Swipe verso SINISTRA -> Mese Successivo
         if (currentIndex < picker.options.length - 1) {
             picker.selectedIndex = currentIndex + 1;
-            initCalendar(); // Ricarica la vista
+            initCalendar();
         }
     }
-    
     if (touchendX > touchstartX + 70) {
-        // Swipe verso DESTRA -> Mese Precedente
         if (currentIndex > 0) {
             picker.selectedIndex = currentIndex - 1;
-            initCalendar(); // Ricarica la vista
+            initCalendar();
         }
     }
 }
