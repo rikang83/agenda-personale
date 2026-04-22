@@ -47,8 +47,21 @@
 <div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
         <h3 style="text-align:center;">Opzioni Giorno</h3>
-        <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px; cursor:pointer;">CARICA SCHEMA MATRIMONIO</button>
-        <button onclick="applicaSchemaBattesimo()" style="width:100%; padding:15px; background:#03a9f4; color:white; border:none; border-radius:8px; font-weight:bold; margin-bottom:10px; cursor:pointer;">CARICA SCHEMA BATTESIMO</button>
+        
+        <div style="margin-bottom: 15px;">
+            <input type="text" id="titoloMatrimonio" placeholder="PERSONALIZZA TITOLO MATRIMONIO" 
+                   onblur="salvaTitoloMatrimonio(this.value)" 
+                   style="width:100%; padding:10px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; text-align:center; box-sizing:border-box; margin-bottom:5px; text-transform:uppercase;">
+            <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">CARICA SCHEMA MATRIMONIO</button>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+             <input type="text" id="titoloBattesimo" placeholder="PERSONALIZZA TITOLO BATTESIMO" 
+                   onblur="salvaTitoloBattesimo(this.value)" 
+                   style="width:100%; padding:10px; background:#03a9f4; color:white; border:none; border-radius:8px; font-weight:bold; text-align:center; box-sizing:border-box; margin-bottom:5px; text-transform:uppercase;">
+            <button onclick="applicaSchemaBattesimo()" style="width:100%; padding:15px; background:#03a9f4; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">CARICA SCHEMA BATTESIMO</button>
+        </div>
+
         <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">RESET TOTALE OGGI</button>
     </div>
 </div>
