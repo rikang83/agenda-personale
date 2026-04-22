@@ -41,7 +41,7 @@
     <div class="grid-mese" id="corpoMeseHead">
         <div class="nome-giorno">LUN</div><div class="nome-giorno">MAR</div><div class="nome-giorno">MER</div><div class="nome-giorno">GIO</div><div class="nome-giorno">VEN</div><div class="nome-giorno">SAB</div><div class="nome-giorno">DOM</div>
     </div>
-    <div class="grid-mese" id="corpoMese"></div>
+    <div id="corpoMese" class="grid-mese"></div>
 </div>
 
 <div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
@@ -49,20 +49,16 @@
         <h3 style="text-align:center;">Opzioni Giorno</h3>
         
         <div style="margin-bottom: 15px;">
-            <input type="text" id="titoloMatrimonio" placeholder="PERSONALIZZA TITOLO MATRIMONIO" 
-                   onblur="salvaTitoloMatrimonio(this.value)" 
-                   style="width:100%; padding:10px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; text-align:center; box-sizing:border-box; margin-bottom:5px; text-transform:uppercase;">
-            <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">CARICA SCHEMA MATRIMONIO</button>
+            <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:20px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:16px;">CARICA SCHEMA MATRIMONIO</button>
         </div>
 
         <div style="margin-bottom: 15px;">
-             <input type="text" id="titoloBattesimo" placeholder="PERSONALIZZA TITOLO BATTESIMO" 
-                   onblur="salvaTitoloBattesimo(this.value)" 
-                   style="width:100%; padding:10px; background:#03a9f4; color:white; border:none; border-radius:8px; font-weight:bold; text-align:center; box-sizing:border-box; margin-bottom:5px; text-transform:uppercase;">
-            <button onclick="applicaSchemaBattesimo()" style="width:100%; padding:15px; background:#03a9f4; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">CARICA SCHEMA BATTESIMO</button>
+            <button onclick="applicaSchemaBattesimo()" style="width:100%; padding:20px; background:#03a9f4; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:16px;">CARICA SCHEMA BATTESIMO</button>
         </div>
 
-        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">RESET TOTALE OGGI</button>
+        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">RESET TOTALE OGGI</button>
+        
+        <button onclick="closeModal('mainModal')" style="width:100%; padding:12px; background:#666; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:20px;">ANNULLA</button>
     </div>
 </div>
 
