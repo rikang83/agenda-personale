@@ -130,10 +130,8 @@ function selezionaGiorno(data, scroll = false) {
         if(scroll) att.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     }
     
-    // Carica Titolo Giornata
     db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
     
-    // CARICAMENTO CHIRURGICO TITOLI SPECIALI (Matrimonio/Battesimo)
     db.ref('titoli_speciali/'+data).on('value', s => {
         const spec = s.val() || {};
         document.getElementById('titoloMatrimonio').value = spec.matrimonio || "MATRIMONIO";
@@ -149,7 +147,6 @@ function selezionaGiorno(data, scroll = false) {
     db.ref('agenda/'+data).on('value', s => { datiGiorno = s.val() || {}; renderGiorno(); });
 }
 
-// NUOVE FUNZIONI SALVATAGGIO TITOLI SPECIALI
 function salvaTitoloMatrimonio(v) { if(giornoCorrente) db.ref('titoli_speciali/'+giornoCorrente).update({matrimonio: v.toUpperCase()}); }
 function salvaTitoloBattesimo(v) { if(giornoCorrente) db.ref('titoli_speciali/'+giornoCorrente).update({battesimo: v.toUpperCase()}); }
 
@@ -163,30 +160,72 @@ function renderGiorno() {
     if(mostraTutteRighe) orariFissi.forEach(h => { const id = "h" + h.replace(":", ""); visualizzazione[id] = { id: id, h: h, t: "", c: "def", sortKey: cleanH(h) }; });
     Object.keys(datiGiorno).forEach(key => { const item = datiGiorno[key]; visualizzazione[key] = { id: key, ...item, sortKey: item.sort || cleanH(item.h) || 999 }; });
     const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
+    
     sorted.forEach((item) => {
         if(item.t || mostraTutteRighe || item.isAdmin || item.isBattesimoBlock || item.id.startsWith("ex") || item.id.startsWith("rep_")) {
+            
+            // --- BLOCCO BATTESIMO ---
             if(item.isBattesimoBlock) {
                 const div = document.createElement('div'); div.className = "macro-battesimo";
-                div.innerHTML = `<div class="titolo-battesimo"><input type="text" value="${item.titolo_bat || 'BATTESIMO'}" style="background:none; border:none; color:white; font-weight:900; text-align:center; width:80%; outline:none; font-family:inherit; font-size:18px;" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_bat:this.value})"><button onclick="del('${item.id}')" style="float:right; background:none; border:none; color:white; cursor:pointer;">🗑️</button></div>
-                    <div style="display:grid; gap:10px;">${['cerimonia', 'ricevimento'].map(key => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value})"></div><div style="flex:1"><textarea class="nota-input" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || ''}</textarea><div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item[key+'_c']===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','${key}_c','${k}')">${colMap[k][1]}</div>`).join('')}</div></div></div>`).join('')}
-                    <div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div style="flex:1"><textarea class="nota-input" placeholder="NOTE" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({note_t:this.value})">${item.note_t || ''}</textarea><div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item.note_c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','note_c','${k}')">${colMap[k][1]}</div>`).join('')}</div></div></div>
-                    <div class="admin-block" style="border-color:var(--battesimo);"><div class="admin-top-row"><div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div><input type="text" class="input-adm" style="width:120px;" placeholder="FOTOGRAFO" value="${item.op_foto||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({op_foto:this.value})"><div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div><input type="text" class="input-adm" style="width:120px;" placeholder="OPERATORE" value="${item.op_video||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({op_video:this.value})"></div><div class="admin-grid"><div class="admin-label-row">ACCONTO</div><input type="number" class="input-adm" style="width:70px" value="${item.acc1||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({acc1:this.value})"><input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item.dat1||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({dat1:this.value})"><div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item.chi1===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({chi1:'${k}'})">${colMap[k][1]}</div>`).join('')}</div></div></div></div>`;
+                div.innerHTML = `
+                    <input type="text" class="titolo-schema-editabile bg-battesimo" value="${item.titolo_bat || 'BATTESIMO'}" 
+                        onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_bat:this.value.toUpperCase()})">
+                    <button onclick="del('${item.id}')" style="position:absolute; right:25px; margin-top:-45px; background:none; border:none; color:white; cursor:pointer; font-size:18px;">🗑️</button>
+                    <div style="display:grid; gap:10px;">
+                        ${['cerimonia', 'ricevimento'].map(key => `
+                            <div class="slot-main" style="background:white; padding:10px; border-radius:10px;">
+                                <div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value})"></div>
+                                <div style="flex:1">
+                                    <textarea class="nota-input" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || ''}</textarea>
+                                    <div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item[key+'_c']===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','${key}_c','${k}')">${colMap[k][1]}</div>`).join('')}</div>
+                                </div>
+                            </div>`).join('')}
+                        <div class="slot-main" style="background:white; padding:10px; border-radius:10px;">
+                            <div style="flex:1">
+                                <textarea class="nota-input" placeholder="NOTE" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({note_t:this.value})">${item.note_t || ''}</textarea>
+                                <div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item.note_c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','note_c','${k}')">${colMap[k][1]}</div>`).join('')}</div>
+                            </div>
+                        </div>
+                        <div class="admin-block" style="border-color:var(--battesimo);">
+                            <div class="admin-top-row">
+                                <div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div>
+                                <input type="text" class="input-adm" style="width:120px;" placeholder="FOTOGRAFO" value="${item.op_foto||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({op_foto:this.value})">
+                                <div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div>
+                                <input type="text" class="input-adm" style="width:120px;" placeholder="OPERATORE" value="${item.op_video||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({op_video:this.value})">
+                            </div>
+                            <div class="admin-grid">
+                                <div class="admin-label-row">ACCONTO</div>
+                                <input type="number" class="input-adm" style="width:70px" value="${item.acc1||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({acc1:this.value})">
+                                <input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item.dat1||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({dat1:this.value})">
+                                <div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item.chi1===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({chi1:'${k}'})">${colMap[k][1]}</div>`).join('')}</div>
+                            </div>
+                        </div>
+                    </div>`;
                 container.appendChild(div); div.querySelectorAll('textarea').forEach(autoResize); return;
             }
+
+            // --- BLOCCO SLOT NORMALI E MATRIMONIO ---
             const div = document.createElement('div'); div.className = "slot"; div.id = "slot-" + item.id;
             div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
             let contentHTML = "";
+
+            // AGGIUNTA: Titolo editabile matrimonio interno allo schema
+            if(item.isWed && item.t.startsWith("SPOSO:")) {
+                contentHTML += `<input type="text" class="titolo-schema-editabile bg-matrimonio" value="${item.titolo_mat || 'MATRIMONIO'}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_mat:this.value.toUpperCase()})">`;
+            }
+
             if(item.isAdmin) {
-                contentHTML = `<div class="admin-block"><div class="admin-top-row"><div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div><div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div><div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div><input type="text" class="input-adm" placeholder="OPERATORE" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div><div class="admin-grid">`;
-                for(let i=1; i<=6; i++) { contentHTML += `<div class="admin-label-row">${i===1?'1° ACCONTO':i+'° ACCONTO'}</div><input type="number" class="input-adm" style="width:70px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})"><input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})"><div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item['chi'+i]===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})">${colMap[k][1]}</div>`).join('')}</div>`; }
+                contentHTML += `<div class="admin-block"><div class="admin-top-row"><div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div><div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div><div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div><input type="text" class="input-adm" placeholder="OPERATORE" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div><div class="admin-grid">`;
+                for(let i=1; i<=6; i++) { contentHTML += `<div class="admin-label-row">${i===1?'1° ACCONTO':i+'° ACCONTO'}</div><input type="number" class="input-adm" style="width:70px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item['id']}').update({['acc'+${i}]:this.value})"><input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item['id']}').update({['dat'+${i}]:this.value})"><div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item['chi'+i]===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item['id']}').update({['chi'+${i}]:'${k}'})">${colMap[k][1]}</div>`).join('')}</div>`; }
                 contentHTML += `</div></div>`;
             } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:") || item.t.startsWith("CHIESA:"))) {
                 const tid = item.id+"_tel"; const vid = item.id+"_via";
-                contentHTML = `<div class="slot-main"><div class="ora-box"><input type="text" class="ora-input" value="${item.h==='00:00'?'':item.h}" onblur="salvaCampo('${item.id}','h',this.value,'${item.h}')"></div><div style="flex:1"><textarea class="nota-input" oninput="autoResize(this)" onblur="salvaCampo('${item.id}','t',this.value,'${item.h}')">${item.t}</textarea><textarea class="nota-input" style="font-size:12px" onblur="salvaCampo('${tid}','t',this.value,'${item.h}',true)">${(datiGiorno[tid]?.t||'TEL: ')}</textarea><textarea class="nota-input" style="font-size:12px" onblur="salvaCampo('${vid}','t',this.value,'${item.h}',true)">${(datiGiorno[vid]?.t||'VIA: ')}</textarea></div></div>`;
+                contentHTML += `<div class="slot-main"><div class="ora-box"><input type="text" class="ora-input" value="${item.h==='00:00'?'':item.h}" onblur="salvaCampo('${item.id}','h',this.value,'${item.h}')"></div><div style="flex:1"><textarea class="nota-input" oninput="autoResize(this)" onblur="salvaCampo('${item.id}','t',this.value,'${item.h}')">${item.t}</textarea><textarea class="nota-input" style="font-size:12px" onblur="salvaCampo('${tid}','t',this.value,'${item.h}',true)">${(datiGiorno[tid]?.t||'TEL: ')}</textarea><textarea class="nota-input" style="font-size:12px" onblur="salvaCampo('${vid}','t',this.value,'${item.h}',true)">${(datiGiorno[vid]?.t||'VIA: ')}</textarea></div></div>`;
             } else if(item.isWed && item.t.startsWith("ESTERNI:")) {
-                contentHTML = `<div class="esterni-grid"><div class="esterni-header-label">ESTERNI</div>${[1,2,3,4,5].map(i => `<input type="text" class="loc-input" placeholder="Ora" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value})"><input type="text" class="loc-input" placeholder="Location" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">`).join('')}</div>`;
+                contentHTML += `<div class="esterni-grid"><div class="esterni-header-label">ESTERNI</div>${[1,2,3,4,5].map(i => `<input type="text" class="loc-input" placeholder="Ora" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value})"><input type="text" class="loc-input" placeholder="Location" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">`).join('')}</div>`;
             } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) { return; }
-            else { contentHTML = `<div class="slot-main"><div class="ora-box ${(!mostraEtichettaOra && !item.isWed)?'hidden':''}"><input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}','h',this.value,'${item.h}')"></div><textarea class="nota-input" oninput="autoResize(this)" onblur="salvaCampo('${item.id}','t',this.value,'${item.h}')">${item.t}</textarea></div>`; }
+            else { contentHTML += `<div class="slot-main"><div class="ora-box ${(!mostraEtichettaOra && !item.isWed)?'hidden':''}"><input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}','h',this.value,'${item.h}')"></div><textarea class="nota-input" oninput="autoResize(this)" onblur="salvaCampo('${item.id}','t',this.value,'${item.h}')">${item.t}</textarea></div>`; }
+            
             div.innerHTML = contentHTML + `<div class="color-dots">${(!item.isWed && !item.isAdmin)?Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join(''):''}<button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px; cursor:pointer;">🗑️</button></div>`;
             container.appendChild(div); div.querySelectorAll('textarea').forEach(autoResize);
         }
@@ -209,34 +248,38 @@ function aggiungiRigaExtra() { const id = "ex" + Date.now(); db.ref(`agenda/${gi
 function applicaSchemaMatrimonio() {
     const ts = Date.now(); 
     db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    
-    // Recupera il titolo personalizzato se esiste
     const titSpec = document.getElementById('titoloMatrimonio').value || "MATRIMONIO";
-    
     db.ref('titoli/'+giornoCorrente).once('value', s => { 
         let tOld = s.val() || ""; 
         let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec + " A "; 
         db.ref('titoli/'+giornoCorrente).set(tNew); 
     });
     
-    const sc = [{id:"m"+ts+"_1",t:"SPOSO: ",s:1},{id:"m"+ts+"_2",t:"SPOSA: ",s:2},{id:"m"+ts+"_3",t:"CHIESA: ",s:3},{id:"m"+ts+"_4",t:"SALA: ",s:4},{id:"m"+ts+"_5",t:"ESTERNI:",s:5},{id:"m"+ts+"_6",t:"NOTE: ",s:6},{id:"adm_"+ts,isAdmin:true,s:7}];
-    sc.forEach(i => { if(i.isAdmin) db.ref(`agenda/${giornoCorrente}/${i.id}`).set({h:"00:00", isAdmin:true, sort:i.s, contratto:false, foto:false, video:false, operatore:""}); else { db.ref(`agenda/${giornoCorrente}/${i.id}`).set({h:(i.s<4?"00:00":""), t:i.t, c:'def', isWed:true, sort:i.s}); if(i.t.includes("SPOS")) { db.ref(`agenda/${giornoCorrente}/${i.id}_tel`).set({h:"00:00", t:"TEL: ", c:'def', isSub:true, sort:i.s+0.1}); db.ref(`agenda/${giornoCorrente}/${i.id}_via`).set({h:"00:00", t:"VIA: ", c:'def', isSub:true, sort:i.s+0.2}); } } });
+    const sc = [{id:"m"+ts+"_1",t:"SPOSO: ",s:1, tit: titSpec},{id:"m"+ts+"_2",t:"SPOSA: ",s:2},{id:"m"+ts+"_3",t:"CHIESA: ",s:3},{id:"m"+ts+"_4",t:"SALA: ",s:4},{id:"m"+ts+"_5",t:"ESTERNI:",s:5},{id:"m"+ts+"_6",t:"NOTE: ",s:6},{id:"adm_"+ts,isAdmin:true,s:7}];
+    sc.forEach(i => { 
+        if(i.isAdmin) db.ref(`agenda/${giornoCorrente}/${i.id}`).set({h:"00:00", isAdmin:true, sort:i.s, contratto:false, foto:false, video:false, operatore:""}); 
+        else { 
+            let data = {h:(i.s<4?"00:00":""), t:i.t, c:'def', isWed:true, sort:i.s};
+            if(i.tit) data.titolo_mat = i.tit; // Salva il titolo interno nel primo record
+            db.ref(`agenda/${giornoCorrente}/${i.id}`).set(data); 
+            if(i.t.includes("SPOS")) { 
+                db.ref(`agenda/${giornoCorrente}/${i.id}_tel`).set({h:"00:00", t:"TEL: ", c:'def', isSub:true, sort:i.s+0.1}); 
+                db.ref(`agenda/${giornoCorrente}/${i.id}_via`).set({h:"00:00", t:"VIA: ", c:'def', isSub:true, sort:i.s+0.2}); 
+            } 
+        } 
+    });
     closeModal('mainModal');
 }
 
 function applicaSchemaBattesimo() {
     const ts = Date.now(); 
     db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    
-    // Recupera il titolo personalizzato se esiste
     const titSpec = document.getElementById('titoloBattesimo').value || "BATTESIMO";
-    
     db.ref('titoli/'+giornoCorrente).once('value', s => { 
         let tOld = s.val() || ""; 
         let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec; 
         db.ref('titoli/'+giornoCorrente).set(tNew); 
     });
-    
     const id = "bat_" + ts; 
     db.ref(`agenda/${giornoCorrente}/${id}`).set({ isBattesimoBlock: true, sort: 1, titolo_bat: titSpec, cerimonia_h: "", cerimonia_t: "", cerimonia_c: "def", ricevimento_h: "", ricevimento_t: "", ricevimento_c: "def", note_t: "", note_c: "def", foto: false, op_foto: "", video: false, op_video: "", acc1: "", dat1: "", chi1: "def" });
     closeModal('mainModal');
