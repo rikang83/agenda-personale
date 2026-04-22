@@ -15,6 +15,10 @@
     <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;">
         <button onclick="openModal('mainModal')" style="height: 42px; width: 42px; border-radius: 8px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center;">⚙️</button>
         
+        <div id="notif-trigger" onclick="toggleNotifiche()" style="position: relative; cursor: pointer; font-size: 24px; height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px;">
+            🔔<span id="notif-badge" style="display:none; position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; width:18px; height:18px; font-size:11px; font-weight:bold; display:flex; align-items:center; justify-content:center;">0</span>
+        </div>
+
         <select id="monthPicker" onchange="initCalendar()" style="height: 42px; border-radius: 8px; border: 1px solid #ccc; padding: 0 10px; font-weight: bold; background: white; min-width: 150px;"></select>
         
         <button onclick="condividiWhatsApp()" style="height: 42px; width: 42px; border-radius: 8px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center;">➦</button>
@@ -102,6 +106,16 @@
     </div>
 </div>
 
-<script src="script.js?v=1.1"></script>
+<div id="notifModal" class="overlay" onclick="closeModal('notifModal')">
+    <div class="modal-box" style="max-width:400px;" onclick="event.stopPropagation()">
+        <h3 style="text-align:center; margin-top:0;">Notifiche Attività</h3>
+        <div id="notif-list" style="max-height:400px; overflow-y:auto; text-align:left; font-size:14px; border:1px solid #eee; border-radius:8px; padding:5px;">
+            </div>
+        <button onclick="segnaComeLette()" style="margin-top:15px; width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">SEGNA COME LETTE</button>
+        <button onclick="closeModal('notifModal')" style="margin-top:10px; width:100%; padding:10px; background:#666; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">CHIUDI</button>
+    </div>
+</div>
+
+<script src="script.js?v=1.2"></script>
 </body>
 </html>
