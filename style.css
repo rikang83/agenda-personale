@@ -66,75 +66,95 @@ input:checked + .slider:before { transform: translateX(14px); }
 .dot, .dot-s { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); opacity: 0.4; }
 .dot.active, .dot-s.active { opacity: 1; border: 2px solid #333; transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-/* --- FIX VISTA MESE --- */
+/* --- FIX VISTA MESE DEFINITIVO --- */
 
-/* 1. Il contenitore deve permettere lo scroll */
 #vMese {
-    display: none; /* Gestito da JS */
+    display: none; 
     width: 100%;
-    overflow-x: auto !important; /* Forza lo scroll orizzontale */
+    /* Permette lo scroll orizzontale se la griglia eccede lo schermo */
+    overflow-x: auto !important; 
     overflow-y: hidden;
     background: #f0f2f5;
-    -webkit-overflow-scrolling: touch; /* Scroll fluido su iPhone */
+    -webkit-overflow-scrolling: touch;
+    /* Importante: permette al JS di leggere lo swipe orizzontale */
+    touch-action: pan-y; 
 }
 
-/* 2. La griglia deve avere una larghezza MINIMA fissa */
 .grid-mese {
     display: grid !important;
-    /* 7 colonne da 140px l'una = 980px totali. 
-       Questo garantisce che su mobile (largo ~390px) ci sia lo scroll */
-    grid-template-columns: repeat(7, 140px) !important;
-    width: max-content !important; 
+    /* Ogni colonna occupa 1 frazione, ma non scende MAI sotto i 110px */
+    /* Questo garantisce adattamento su tablet e scroll su smartphone */
+    grid-template-columns: repeat(7, minmax(110px, 1fr)) !important;
+    width: 100%;
+    /* Impedisce alla griglia di restringersi sotto la somma dei minmax */
+    min-width: max-content; 
     background: #ddd;
     gap: 1px;
     border-bottom: 1px solid #ddd;
 }
 
-/* 3. Intestazioni giorni (LUN, MAR...) */
+/* Intestazioni giorni (LUN, MAR...) */
 .nome-giorno {
-    background: #1a73e8;
+    background: var(--p);
     color: white;
     text-align: center;
-    padding: 10px 0;
+    padding: 12px 0;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 11px;
+    text-transform: uppercase;
 }
 
-/* 4. Le singole celle del mese */
+/* Le singole celle del mese */
 .cell-mese {
     background: white;
-    min-height: 140px; /* Altezza fissa per non farle collassare */
-    padding: 8px;
+    min-height: 120px; 
+    padding: 6px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     cursor: pointer;
     transition: background 0.2s;
 }
 
-.cell-mese:active {
-    background: #e8f0fe;
+/* Numero del giorno in alto a destra */
+.cell-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 4px;
 }
 
-.num-giorno-mese {
-    font-weight: 800;
-    font-size: 14px;
-    margin-bottom: 5px;
-    color: #555;
+.num-giorno {
+    font-weight: 900;
+    font-size: 13px;
+    color: #333;
 }
 
-/* 5. Gli impegni dentro le celle del mese */
+/* Impegni dentro le celle (compatti) */
 .item-mese {
-    font-size: 10px;
-    padding: 2px 5px;
-    border-radius: 4px;
+    font-size: 9px;
+    padding: 2px 4px;
+    border-radius: 3px;
     color: white;
-    white-space: nowrap; /* Non manda a capo il testo */
-    overflow: hidden;    /* Taglia se troppo lungo */
-    text-overflow: ellipsis; /* Aggiunge i puntini (...) */
     font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    margin-bottom: 1px;
 }
+
+/* Colori stati speciali nelle celle */
+.cell-mese.holiday { background: #fff5f5; }
+.cell-mese.nat-holiday { background: #ffebee; }
+.cell-mese.active { background: #e8f0fe; }
+
+/* Forza la testata a seguire la larghezza della griglia */
+#corpoMeseHead {
+    width: 100%;
+    min-width: max-content;
+}
+
 /* ------------------------------------- */
 
 .cell-mese:active { background: #f0f0f0; }
