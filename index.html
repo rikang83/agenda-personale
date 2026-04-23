@@ -116,8 +116,12 @@
             <h3 style="margin:0;">Log Attività</h3>
             <button onclick="closeModal('notifModal')" style="background:none; border:none; font-size:24px; cursor:pointer;">✕</button>
         </div>
-        <div id="notif-list" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
-            </div>
+        <div id="notif-list" style="max-height: 400px; overflow-y: auto; padding-right: 5px;"></div>
+        
+        <div class="notif-actions">
+            <button onclick="segnaTutteLette()" class="btn-notif-read">Segna come lette</button>
+            <button onclick="closeModal('notifModal')" class="btn-notif-close">Chiudi</button>
+        </div>
     </div>
 </div>
 
