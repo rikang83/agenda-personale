@@ -205,7 +205,6 @@ input:checked + .slider:before { transform: translateX(14px); }
     font-size: 20px;
     cursor: pointer;
 }
-
 /* --- NOTIFICHE & BADGE --- */
 .notif-container { position: relative; display: inline-block; }
 .badge {
