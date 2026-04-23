@@ -32,25 +32,24 @@ input:checked + .slider:before { transform: translateX(14px); }
 /* --- STRIP GIORNI ORIZZONTALE CON SCROLLBAR FORZATA --- */
 .calendar-strip { 
     display: flex; 
-    overflow-x: scroll !important; /* Forza lo scroll orizzontale */
+    overflow-x: scroll !important; 
     padding: 15px 10px; 
     background: white; 
     gap: 8px; 
     border-bottom: 1px solid #ddd; 
-    scrollbar-width: thin; /* Per Firefox */
-    scrollbar-color: #bbb #f1f1f1; /* Per Firefox */
+    scrollbar-width: thin; 
+    scrollbar-color: #bbb #f1f1f1; 
 }
 
-/* Stilizzazione barra di navigazione per PC (Chrome, Edge, Safari) */
 .calendar-strip::-webkit-scrollbar { 
-    height: 10px !important; /* Spessore aumentato per PC */
+    height: 10px !important; 
     display: block !important; 
 }
 .calendar-strip::-webkit-scrollbar-track { 
     background: #f1f1f1 !important; 
 }
 .calendar-strip::-webkit-scrollbar-thumb { 
-    background: #bbb !important; /* Grigio visibile */
+    background: #bbb !important; 
     border-radius: 10px; 
     border: 2px solid #f1f1f1;
 }
@@ -93,7 +92,6 @@ input:checked + .slider:before { transform: translateX(14px); }
 .dot.active, .dot-s.active { opacity: 1; border: 2px solid #333; transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
 /* --- VISTA MESE: SCHERMATA UNICA (NO SCROLL) --- */
-
 #vMese {
     display: none; 
     width: 100%;
@@ -170,6 +168,12 @@ input:checked + .slider:before { transform: translateX(14px); }
 /* Modali */
 .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
 .modal-box { background: white; width: 92%; max-width: 450px; padding: 25px; border-radius: 20px; overflow-y: auto; max-height: 90vh; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+/* --- AZIONI NOTIFICHE (CHIRURGICO) --- */
+.notif-actions { display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
+.btn-notif-read { flex: 2; background: var(--a); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.btn-notif-close { flex: 1; background: #eee; color: #333; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.notif-item.read { opacity: 0.5; border-left-color: #ccc; background: #fafafa; }
 
 /* Notifiche Badge e Lista */
 @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
