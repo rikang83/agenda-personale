@@ -29,11 +29,22 @@ function autoResize(el) {
 }
 
 // --- NUOVA FUNZIONE LOG ATTIVITA ---
-function logAttivita(messaggio) {
+function logAttivita(messaggio, oraEvento = "", isoData = "") {
     const timestamp = Date.now();
+    // Formattiamo la data in versione italiana GG/MM/AAAA
+    let dataIt = "";
+    if (isoData) {
+        const [y, m, d] = isoData.split("-");
+        dataIt = `${d}/${m}/${y}`;
+    }
+
     db.ref('logs').push({
         msg: messaggio,
-        time: timestamp
+        ora: oraEvento,
+        dataIt: dataIt,
+        iso: isoData,
+        time: timestamp,
+        letta: false
     });
 }
 
