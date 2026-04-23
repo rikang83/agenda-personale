@@ -1,4 +1,48 @@
-:root { 
+:root { --p: #2196f3; --a: #4caf50; --d: #ff9800; --v: #fbc02d; --battesimo: #03a9f4; --matrimonio: #1a237e; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; color: #333; overflow-x: hidden; }
+
+.header { background: white; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.header-btn { background: #f0f0f0; border: 1px solid #ccc; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 18px; height: 42px; }
+.nav-btn { padding: 10px 20px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.3s; }
+.nav-btn:hover { background: var(--p); color: white; border-color: var(--p); }
+
+.calendar-strip { display: flex; overflow-x: auto; padding: 15px; gap: 10px; background: white; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+.day-item { min-width: 60px; padding: 10px; text-align: center; background: #f9f9f9; border-radius: 12px; cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
+.day-item.active { background: var(--p); color: white; transform: scale(1.05); box-shadow: 0 4px 10px rgba(33,150,243,0.3); }
+.day-item.holiday { color: #f44336; }
+.day-item.nat-holiday { background: #ffebee; border-color: #f44336; }
+
+.day-title { width: 90%; margin: 15px 5%; padding: 15px; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; text-align: center; box-sizing: border-box; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+.slot { background: white; margin: 10px 15px; padding: 15px; border-radius: 12px; border-left: 5px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+.slot-main { display: flex; gap: 15px; align-items: flex-start; }
+.ora-box { width: 60px; }
+.ora-input { width: 100%; border: none; font-weight: bold; color: var(--p); font-size: 15px; background: #e3f2fd; padding: 5px; border-radius: 5px; text-align: center; }
+.nota-input { flex: 1; border: none; font-size: 16px; resize: none; overflow: hidden; padding: 5px; font-family: inherit; }
+.nota-input:focus { outline: none; background: #fcfcfc; }
+
+/* Grid Mese - Ripristinata struttura originale */
+.grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ddd; border: 1px solid #ddd; }
+.nome-giorno { background: #eee; padding: 10px 0; text-align: center; font-size: 12px; font-weight: bold; }
+.cell-mese { background: white; min-height: 120px; padding: 5px; position: relative; cursor: pointer; }
+.cell-mese.holiday { background: #fff5f5; }
+.cell-mese.nat-holiday { background: #ffebee; }
+.num-giorno { font-weight: 800; font-size: 14px; margin-bottom: 5px; display: block; }
+
+.item-mese { font-size: 9px; padding: 2px 4px; margin-bottom: 2px; border-radius: 3px; color: white; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.m-titolo-box { font-size: 10px; font-weight: bold; text-align: center; padding: 3px; margin-bottom: 4px; border-radius: 4px; }
+
+/* Micro-aggiunte per nuove funzioni */
+#notif-badge { line-height: 1; pointer-events: none; z-index: 10; }
+.notif-item:hover { background: #f0f7ff !important; }
+.hidden { display: none !important; }
+
+/* FAB Button */
+.fab-add { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: var(--p); color: white; border: none; border-radius: 50%; font-size: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; z-index: 99; }
+
+/* Overlay e Modal originali */
+.overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:1000; }
+.modal-box { background:white; padding:25px; border-radius:20px; width:90%; max-width:500px; box-shadow:0 10px 30px rgba(0,0,0,0.2); }:root { 
     --p: #1a237e; 
     --r: #2196f3; 
     --a: #4caf50; 
