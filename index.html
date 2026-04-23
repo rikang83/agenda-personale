@@ -11,31 +11,25 @@
 </head>
 <body>
 
-<div class="header">
-    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; padding: 10px;">
-        <button class="header-btn" onclick="openModal('mainModal')">⚙️</button>
+<div class="header" style="text-align: center; padding: 10px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;">
+        <button onclick="openModal('mainModal')" style="height: 42px; width: 42px; border-radius: 8px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center;">⚙️</button>
         
         <div id="notif-trigger" onclick="toggleNotifiche()" style="position: relative; cursor: pointer; font-size: 24px; height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px;">
-            🔔<span id="notif-badge">0</span>
+            🔔<span id="notif-badge" style="display:none; position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; width:18px; height:18px; font-size:11px; font-weight:bold; display:flex; align-items:center; justify-content:center;">0</span>
         </div>
 
         <select id="monthPicker" onchange="initCalendar()" style="height: 42px; border-radius: 8px; border: 1px solid #ccc; padding: 0 10px; font-weight: bold; background: white; min-width: 150px;"></select>
         
-        <button class="header-btn" onclick="condividiWhatsApp()">➦</button>
+        <button onclick="condividiWhatsApp()" style="height: 42px; width: 42px; border-radius: 8px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center;">➦</button>
     </div>
 
     <div class="nav-buttons" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;">
         <button class="nav-btn" onclick="toggleVista('g')">GIORNO</button>
         <button class="nav-btn" onclick="toggleVista('m')">MESE</button>
         <button class="nav-btn" style="background:var(--a); border:none;" onclick="openRepModal()">RIPETI/PULISCI</button>
-        
-        <div class="master-switch">
-            RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="salvaStatoRighe(this.checked)"><span class="slider"></span></label>
-        </div>
-        <div class="master-switch">
-            ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="salvaStatoOra(this.checked)"><span class="slider"></span></label>
-        </div>
-        
+        <div class="master-switch">RIGHE <label class="switch"><input type="checkbox" id="checkRighe" checked onchange="salvaStatoRighe(this.checked)"><span class="slider"></span></label></div>
+        <div class="master-switch">ORA <label class="switch"><input type="checkbox" id="checkOrarioLabel" checked onchange="salvaStatoOra(this.checked)"><span class="slider"></span></label></div>
         <button class="nav-btn" style="background:#673ab7; border:none;" onclick="openChartModal()">STATISTICHE</button>
     </div>
 </div>
@@ -57,24 +51,31 @@
 <div id="mainModal" class="overlay" onclick="closeModal('mainModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
         <h3 style="text-align:center;">Opzioni Giorno</h3>
-        <button onclick="applicaSchemaMatrimonio()" class="btn-schema-wed">CARICA SCHEMA MATRIMONIO</button>
-        <button onclick="applicaSchemaBattesimo()" class="btn-schema-bat" style="margin-top:10px;">CARICA SCHEMA BATTESIMO</button>
-        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-        <button onclick="pulisciTuttoGiorno(giornoCorrente)" class="btn-reset-day">RESET TOTALE OGGI</button>
-        <button onclick="closeModal('mainModal')" class="btn-cancel">ANNULLA</button>
+        
+        <div style="margin-bottom: 15px;">
+            <button onclick="applicaSchemaMatrimonio()" style="width:100%; padding:20px; background:var(--p); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:16px;">CARICA SCHEMA MATRIMONIO</button>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <button onclick="applicaSchemaBattesimo()" style="width:100%; padding:20px; background:#03a9f4; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:16px;">CARICA SCHEMA BATTESIMO</button>
+        </div>
+
+        <button onclick="pulisciTuttoGiorno(giornoCorrente)" style="width:100%; padding:15px; background:var(--festivo); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">RESET TOTALE OGGI</button>
+        
+        <button onclick="closeModal('mainModal')" style="width:100%; padding:12px; background:#666; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:20px;">ANNULLA</button>
     </div>
 </div>
 
 <div id="repModal" class="overlay" onclick="closeModal('repModal')">
     <div class="modal-box" onclick="event.stopPropagation()">
         <h3 style="margin-top:0; text-align:center;">Gestione Impegni</h3>
-        <input type="text" id="repTesto" placeholder="Cosa scrivere?" class="modal-input">
+        <input type="text" id="repTesto" placeholder="Cosa scrivere?" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; box-sizing: border-box;">
         <div style="display:flex; gap:10px; margin-top:10px;">
-            <select id="repHInizio" class="modal-select"></select>
-            <select id="repHFine" class="modal-select"></select>
+            <select id="repHInizio" style="flex:1; padding:10px; border-radius:8px;"></select>
+            <select id="repHFine" style="flex:1; padding:10px; border-radius:8px;"></select>
         </div>
-        <div class="modal-label">RIPETI NEI GIORNI:</div>
-        <div class="dot-days-container">
+        <div style="font-size:11px; font-weight:bold; color:var(--p); margin-top:15px;">RIPETI NEI GIORNI:</div>
+        <div style="display:flex; justify-content:space-between; margin:10px 0;">
             <div class="dot-day-rep" onclick="toggleRepDay(this, 1)">L</div>
             <div class="dot-day-rep" onclick="toggleRepDay(this, 2)">M</div>
             <div class="dot-day-rep" onclick="toggleRepDay(this, 3)">M</div>
@@ -83,10 +84,10 @@
             <div class="dot-day-rep" onclick="toggleRepDay(this, 6)">S</div>
             <div class="dot-day-rep" onclick="toggleRepDay(this, 0)">D</div>
         </div>
-        <div class="modal-label">FINO AL GIORNO:</div>
-        <input type="date" id="repDataFine" class="modal-input">
-        <button onclick="eseguiRipetizione()" class="btn-apply-rep">APPLICA RIPETIZIONE</button>
-        <button onclick="cancellaRipetizioniInBlocco()" class="btn-del-rep-block">CANCELLA IN BLOCCO (DA OGGI)</button>
+        <div style="font-size:11px; font-weight:bold; color:var(--p);">FINO AL GIORNO:</div>
+        <input type="date" id="repDataFine" style="width:100%; padding:12px; margin-top:5px; border-radius:8px; border:1px solid #ddd; box-sizing: border-box;">
+        <button onclick="eseguiRipetizione()" style="width:100%; padding:14px; background:var(--a); color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">APPLICA RIPETIZIONE</button>
+        <button onclick="cancellaRipetizioniInBlocco()" style="width:100%; padding:10px; background:none; color:var(--festivo); border:2px solid var(--festivo); border-radius:12px; font-weight:bold; margin-top:10px; width:100%;">CANCELLA IN BLOCCO (DA OGGI)</button>
     </div>
 </div>
 
@@ -101,24 +102,20 @@
             <canvas id="workChart"></canvas>
         </div>
         <div id="statsLegend" class="legend-grid" style="margin-top: 20px;"></div>
-        <button onclick="closeModal('chartModal')" class="btn-close-chart">CHIUDI STATISTICHE</button>
+        <button onclick="closeModal('chartModal')" style="display: block; width: 100%; margin-top: 20px; padding: 15px; background: var(--p); color: white; border: none; border-radius: 12px; font-weight: bold; cursor:pointer;">CHIUDI STATISTICHE</button>
     </div>
 </div>
 
 <div id="notifModal" class="overlay" onclick="closeModal('notifModal')">
     <div class="modal-box" style="max-width:400px;" onclick="event.stopPropagation()">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="margin:0;">Notifiche Attività</h3>
-            <button onclick="closeModal('notifModal')" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
-        </div>
-        
-        <div id="notif-list">
+        <h3 style="text-align:center; margin-top:0;">Notifiche Attività</h3>
+        <div id="notif-list" style="max-height:400px; overflow-y:auto; text-align:left; font-size:14px; border:1px solid #eee; border-radius:8px; padding:5px;">
             </div>
-
-        <button onclick="closeModal('notifModal')" style="margin-top:20px; width:100%; padding:15px; background:#666; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">CHIUDI</button>
+        <button onclick="segnaComeLette()" style="margin-top:15px; width:100%; padding:12px; background:#4caf50; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">SEGNA COME LETTE</button>
+        <button onclick="closeModal('notifModal')" style="margin-top:10px; width:100%; padding:10px; background:#666; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">CHIUDI</button>
     </div>
 </div>
 
-<script src="script.js?v=1.3"></script>
+<script src="script.js?v=1.2"></script>
 </body>
 </html>
