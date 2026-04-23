@@ -238,14 +238,21 @@ function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
 function toggleVista(v) { 
     const vGiorno = document.getElementById('vGiorno');
     const vMese = document.getElementById('vMese');
-    if(v==='g') {
+    
+    if(v === 'g') {
         vGiorno.style.display = 'block';
         vMese.style.display = 'none';
     } else {
         vGiorno.style.display = 'none';
-        vMese.style.display = 'block';
-        initCalendar(); // Riesegue il calcolo delle celle
-        vMese.scrollLeft = 0; // Reset scroll orizzontale
+        vMese.style.display = 'block'; // Lo mostriamo prima...
+        
+        initCalendar(); // ...e poi generiamo i giorni
+        
+        // Questo risolve il problema del "non si vede tutto":
+        // Aspettiamo un millisecondo che il browser calcoli lo spazio e resettiamo lo scroll a sinistra
+        setTimeout(() => {
+            vMese.scrollLeft = 0;
+        }, 10);
     }
 }
 
