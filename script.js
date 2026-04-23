@@ -22,27 +22,46 @@ const categories = [
     { label: 'In Studio', keys: ['in studio'], color: '#4caf50' }
 ];
 
-// --- LOGICA NOTIFICHE ---
+// --- LOGICA NOTIFICHE (MODIFICATA) ---
 function setupNotifiche() {
     const list = document.getElementById('notif-list');
+    
     db.ref('notifiche_log').orderByChild('timestamp').limitToLast(30).on('value', (snapshot) => {
         const logs = snapshot.val() || {};
         list.innerHTML = "";
         let unread = 0;
         const oraAttuale = Date.now();
+        
+        // Recuperiamo il timestamp dell'ultima volta che abbiamo segnato tutto come letto
+        const ultimoCheckLocale = parseInt(localStorage.getItem('notifiche_lette_timestamp')) || 0;
 
         Object.keys(logs).reverse().forEach(key => {
             const n = logs[key];
+            
+            // Rimozione automatica notifiche più vecchie di 24h
             if (oraAttuale - n.timestamp > 86400000) {
                 db.ref('notifiche_log/' + key).remove();
                 return;
             }
-            const isRead = localStorage.getItem('read_' + key);
+
+            // Una notifica è letta se cliccata singolarmente OPPURE se precedente al timestamp globale "segna tutto letto"
+            const isReadSingola = localStorage.getItem('read_' + key);
+            const isReadMassivo = n.timestamp <= ultimoCheckLocale;
+            const isRead = isReadSingola || isReadMassivo;
+
             if (!isRead) unread++;
 
             const item = document.createElement('div');
             item.className = 'notif-item';
-            if (!isRead) item.style.backgroundColor = '#fff9c4'; 
+            
+            // Stile visivo: evidenziato se non letto, semitrasparente se letto
+            if (!isRead) {
+                item.style.backgroundColor = '#fff9c4';
+                item.style.borderLeft = '4px solid #2196f3';
+            } else {
+                item.style.backgroundColor = 'transparent';
+                item.style.opacity = '0.6';
+            }
             
             const dataModifica = new Date(n.timestamp).toLocaleString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
             
@@ -53,7 +72,6 @@ function setupNotifiche() {
 
             item.onclick = () => {
                 localStorage.setItem('read_' + key, 'true');
-                item.style.backgroundColor = 'transparent';
                 if(document.getElementById('vMese').style.display !== 'none') toggleVista('g');
                 selezionaGiorno(n.dataGiorno, true);
                 setTimeout(() => {
@@ -65,7 +83,6 @@ function setupNotifiche() {
                     }
                 }, 600);
                 closeModal('notifModal');
-                aggiornaBadge(unread - 1);
             };
             list.appendChild(item);
         });
@@ -76,11 +93,38 @@ function setupNotifiche() {
 
 function aggiornaBadge(count) {
     const badge = document.getElementById('notif-badge');
-    if (count > 0) { badge.innerText = count; badge.style.display = 'flex'; } 
-    else { badge.style.display = 'none'; }
+    if (count > 0) { 
+        badge.innerText = count; 
+        badge.style.display = 'flex'; 
+    } else { 
+        badge.style.display = 'none'; 
+    }
 }
 
 function toggleNotifiche() { openModal('notifModal'); }
+
+function segnaTutteLette() {
+    // 1. Salviamo il timestamp attuale: tutte le notifiche create finora saranno considerate lette
+    const timestampLettura = Date.now();
+    localStorage.setItem('notifiche_lette_timestamp', timestampLettura);
+
+    // 2. Azzeriamo il badge immediatamente per dare feedback
+    notifCount = 0;
+    aggiornaBadge(0);
+
+    // 3. Estetica: rendiamo le notifiche nella lista visivamente lette
+    document.querySelectorAll('.notif-item').forEach(item => {
+        item.style.backgroundColor = 'transparent';
+        item.style.opacity = '0.6';
+        item.style.borderLeft = 'none';
+    });
+    
+    console.log("Tutte le notifiche segnate come lette.");
+}
+
+function chiudiNotifiche() {
+    closeModal('notifModal');
+}
 
 // --- FUNZIONI CORE ---
 function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
@@ -234,7 +278,6 @@ function salvaStatoOra(v) { db.ref('config/'+giornoCorrente).update({mostraOra:v
 function salvaStatoRighe(v) { db.ref('config/'+giornoCorrente).update({mostraRighe:v}); renderGiorno(); }
 function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
 
-// --- MODIFICA CHIRURGICA TOGGLE VISTA ---
 function toggleVista(v) {
     const vg = document.getElementById('vGiorno');
     const vm = document.getElementById('vMese');
@@ -242,15 +285,10 @@ function toggleVista(v) {
     if (v === 'm') {
         vg.style.display = 'none';
         vm.style.display = 'block';
-        
-        // Rigenera il calendario per sicurezza
         initCalendar();
-        
-        // Piccola pausa per permettere al browser di calcolare lo scroll
         setTimeout(() => {
-            vm.scrollLeft = 0; // Parte da Lunedì
+            vm.scrollLeft = 0;
         }, 50);
-        
     } else {
         vg.style.display = 'block';
         vm.style.display = 'none';
@@ -311,77 +349,27 @@ function fetchAndDraw() {
         document.getElementById('statsLegend').innerHTML = categories.map(cat => `<div class="leg-item"><div class="leg-col" style="background:${cat.color}"></div>${cat.label}</div>`).join('');
     });
 }
+
 window.onload = initCalendar;
-// --- GESTIONE SWIPE PER CAMBIARE MESE ---
+
+// --- SWIPE ---
 let touchstartX = 0;
 let touchendX = 0;
-
 const vMeseContainer = document.getElementById('vMese');
-
-vMeseContainer.addEventListener('touchstart', e => {
-    touchstartX = e.changedTouches[0].screenX;
-}, false);
-
-vMeseContainer.addEventListener('touchend', e => {
-    touchendX = e.changedTouches[0].screenX;
-    handleGesture();
-}, false);
+vMeseContainer.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, false);
+vMeseContainer.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleGesture(); }, false);
 
 function handleGesture() {
-    const soglia = 100; // Pixel minimi per attivare lo swipe
-    const mp = document.getElementById('monthPicker');
-    
-    if (touchendX < touchstartX - soglia) {
-        // Swipe a Sinistra -> Mese Successivo
-        cambiaMeseOffset(1);
-    }
-    if (touchendX > touchstartX + soglia) {
-        // Swipe a Destra -> Mese Precedente
-        cambiaMeseOffset(-1);
-    }
+    const soglia = 100;
+    if (touchendX < touchstartX - soglia) cambiaMeseOffset(1);
+    if (touchendX > touchstartX + soglia) cambiaMeseOffset(-1);
 }
 
 function cambiaMeseOffset(offset) {
     const mp = document.getElementById('monthPicker');
-    let currentIndex = mp.selectedIndex;
-    let newIndex = currentIndex + offset;
-    
+    let newIndex = mp.selectedIndex + offset;
     if (newIndex >= 0 && newIndex < mp.options.length) {
         mp.selectedIndex = newIndex;
-        // Triggeriamo manualmente l'evento onchange
         initCalendar(); 
     }
 }
-/**
- * Funzione chirurgica: Segna le notifiche come lette 
- * Salvataggio persistente solo sul dispositivo locale (localStorage)
- */
-function segnaTutteLette() {
-    // 1. Salviamo il timestamp attuale per marcare il momento della lettura
-    const timestampLettura = new Date().getTime();
-    localStorage.setItem('notifiche_lette_timestamp', timestampLettura);
-
-    // 2. Applichiamo la classe grafica 'read' a tutti gli elementi correnti
-    const items = document.querySelectorAll('.notif-item');
-    items.forEach(item => {
-        item.classList.add('read');
-    });
-
-    // 3. Resettiamo il badge delle notifiche a 0 e nascondiamolo
-    const badge = document.getElementById('notif-badge');
-    if (badge) {
-        badge.innerText = "0";
-        badge.style.display = 'none';
-    }
-}
-
-/**
- * Funzione chirurgica: Chiude il modale notifiche
- */
-function chiudiNotifiche() {
-    closeModal('notifModal');
-}
-
-// Nota: Per rendere la memoria efficace al ricaricamento della pagina,
-// assicurati che la tua funzione esistente che genera la lista (es. toggleNotifiche o caricaNotifiche)
-// controlli se esiste 'notifiche_lette_timestamp' nel localStorage per aggiungere la classe .read
