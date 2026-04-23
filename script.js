@@ -22,39 +22,30 @@ const categories = [
     { label: 'In Studio', keys: ['in studio'], color: '#4caf50' }
 ];
 
-// --- LOGICA NOTIFICHE AVANZATA ---
+// --- LOGICA NOTIFICHE ---
 function setupNotifiche() {
     const list = document.getElementById('notif-list');
-    
-    // Ascolta il log delle notifiche (ultime 30)
     db.ref('notifiche_log').orderByChild('timestamp').limitToLast(30).on('value', (snapshot) => {
         const logs = snapshot.val() || {};
         list.innerHTML = "";
         let unread = 0;
         const oraAttuale = Date.now();
 
-        // Trasformiamo in array e ordiniamo per il più recente
         Object.keys(logs).reverse().forEach(key => {
             const n = logs[key];
-            
-            // 1. CANCELLAZIONE AUTOMATICA DOPO 24 ORE
             if (oraAttuale - n.timestamp > 86400000) {
                 db.ref('notifiche_log/' + key).remove();
                 return;
             }
-
-            // Controllo se letta via localStorage
             const isRead = localStorage.getItem('read_' + key);
             if (!isRead) unread++;
 
             const item = document.createElement('div');
             item.className = 'notif-item';
-            // Evidenziatore se non letta (usiamo una variabile CSS o colore fisso)
             if (!isRead) item.style.backgroundColor = '#fff9c4'; 
             
             const dataModifica = new Date(n.timestamp).toLocaleString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
             
-            // Layout: riga 1 piccola (info), riga 2 grande (contenuto)
             item.innerHTML = `
                 <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Modifica del ${dataModifica} - Giorno ${n.dataGiorno}</div>
                 <div style="font-size: 14px; font-weight: bold; color: #333;">Ora: ${n.oraRiga} - ${n.testo}</div>
@@ -63,28 +54,21 @@ function setupNotifiche() {
             item.onclick = () => {
                 localStorage.setItem('read_' + key, 'true');
                 item.style.backgroundColor = 'transparent';
-                
-                // Navigazione
                 if(document.getElementById('vMese').style.display !== 'none') toggleVista('g');
                 selezionaGiorno(n.dataGiorno, true);
-                
-                // Scroll al punto esatto dopo il render
                 setTimeout(() => {
                     const rigaEl = document.getElementById('slot-' + n.rigaId);
                     if (rigaEl) {
                         rigaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        rigaEl.style.transition = 'background 0.5s';
                         rigaEl.style.backgroundColor = '#fff9c4';
                         setTimeout(() => rigaEl.style.backgroundColor = 'transparent', 2000);
                     }
                 }, 600);
-                
                 closeModal('notifModal');
                 aggiornaBadge(unread - 1);
             };
             list.appendChild(item);
         });
-
         notifCount = unread;
         aggiornaBadge(unread);
     });
@@ -92,24 +76,15 @@ function setupNotifiche() {
 
 function aggiornaBadge(count) {
     const badge = document.getElementById('notif-badge');
-    if (count > 0) {
-        badge.innerText = count;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
-    }
+    if (count > 0) { badge.innerText = count; badge.style.display = 'flex'; } 
+    else { badge.style.display = 'none'; }
 }
 
-function toggleNotifiche() {
-    openModal('notifModal');
-}
+function toggleNotifiche() { openModal('notifModal'); }
 
 // --- FUNZIONI CORE ---
 function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
-function autoResize(el) { 
-    el.style.height = 'auto'; 
-    el.style.height = el.scrollHeight + 'px'; 
-}
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
 function initCalendar() {
     const mp = document.getElementById('monthPicker');
@@ -144,13 +119,10 @@ function initCalendar() {
         
         const dc = document.createElement('div'); dc.className = `cell-mese ${festClass}`;
         dc.innerHTML = `
-            <div class="cell-header">
-                <span class="num-giorno">${d}</span>
-                <button class="btn-del-mese-clean" onclick="pulisciTuttoGiorno('${iso}', event)">🗑️</button>
-            </div>
-            ${festName ? `<div class="label-festivo">${festName}</div>` : ''}
-            <div id="m-tit-${iso}" class="m-titolo-box"></div>
-            <div id="m-list-${iso}" class="m-lista-impegni"></div>
+            <div class="cell-header"><span class="num-giorno">${d}</span><button class="btn-del-mese-clean" onclick="pulisciTuttoGiorno('${iso}', event)" style="background:none; border:none; cursor:pointer;">🗑️</button></div>
+            ${festName ? `<div style="font-size:9px; color:red; font-weight:bold;">${festName}</div>` : ''}
+            <div id="m-tit-${iso}" style="font-size:10px; font-weight:bold; margin-top:2px; padding:2px; border-radius:3px;"></div>
+            <div id="m-list-${iso}" style="margin-top:2px;"></div>
         `;
         dc.onclick = (e) => { if(e.target.tagName !== 'BUTTON') { toggleVista('g'); selezionaGiorno(iso, true); } };
         corpo.appendChild(dc);
@@ -161,18 +133,8 @@ function initCalendar() {
                 const val = (s.val() || "").toUpperCase();
                 el.innerText = val;
                 el.style.display = val ? "block" : "none";
-                el.style.backgroundColor = "#eeeeee"; 
-                el.style.color = "#333";
-                categories.forEach(cat => {
-                    if(cat.keys.some(key => val.includes(key.toUpperCase()))) {
-                        el.style.backgroundColor = cat.color;
-                        el.style.color = "white";
-                    }
-                });
-                if((festName || isDomenica) && el.style.color !== "white") {
-                    el.style.backgroundColor = "#d32f2f"; 
-                    el.style.color = "white";
-                }
+                el.style.backgroundColor = "#eeeeee"; el.style.color = "#333";
+                categories.forEach(cat => { if(cat.keys.some(key => val.includes(key.toUpperCase()))) { el.style.backgroundColor = cat.color; el.style.color = "white"; } });
             } 
         });
 
@@ -180,25 +142,18 @@ function initCalendar() {
             const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
             const data = s.val() || {};
             Object.values(data).sort((a,b)=> cleanH(a.h)-cleanH(b.h)).forEach(v => {
-                let testoBreve = "";
-                if(v.isBattesimoBlock) testoBreve = "BATTESIMO";
-                else if(v.isWed) testoBreve = "MATRIMONIO";
-                else if(v.t) {
-                    const parole = v.t.trim().split(/\s+/);
-                    testoBreve = parole.slice(0, 2).join(' ').toUpperCase();
-                }
+                let testoBreve = v.isBattesimoBlock ? "BATTESIMO" : (v.isWed ? "MATRIMONIO" : (v.t ? v.t.trim().split(/\s+/).slice(0, 2).join(' ').toUpperCase() : ""));
                 if(testoBreve) {
-                    const cHex = (colMap[v.c] ? colMap[v.c][0] : colMap.def[0]);
                     const item = document.createElement('div');
                     item.className = "item-mese";
-                    item.style.backgroundColor = cHex;
-                    item.innerHTML = `<span class="ora-m">${v.h && v.h !== '00:00' ? v.h : ''}</span> ${testoBreve}`;
+                    item.style.backgroundColor = (colMap[v.c] ? colMap[v.c][0] : colMap.def[0]);
+                    item.innerHTML = `${v.h && v.h !== '00:00' ? v.h : ''} ${testoBreve}`;
                     box.appendChild(item);
                 }
             });
         });
     }
-    selezionaGiorno(new Date().toISOString().split('T')[0], true);
+    if(!giornoCorrente) selezionaGiorno(new Date().toISOString().split('T')[0], true);
 }
 
 function selezionaGiorno(data, scroll = false) {
@@ -245,7 +200,7 @@ function renderGiorno() {
             let contentHTML = "";
             if(item.isAdmin) {
                 contentHTML = `<div class="admin-block"><div class="admin-top-row"><div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div><div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div><div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div><input type="text" class="input-adm" placeholder="OPERATORE" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div><div class="admin-grid">`;
-                for(let i=1; i<=6; i++) { contentHTML += `<div class="admin-label-row">${i===1?'1° ACCONTO':i+'° ACCONTO'}</div><input type="number" class="input-adm" style="width:70px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})"><input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})"><div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item['chi'+i]===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})">${colMap[k][1]}</div>`).join('')}</div>`; }
+                for(let i=1; i<=6; i++) { contentHTML += `<div class="admin-label-row">${i===1?'1° ACCONTO':i+'° ACCONTO'}</div><input type="number" class="input-adm" style="width:70px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})"><input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})"><div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item['chi'+i]===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item['id']}'].update({['chi'+${i}]:'${k}'})">${colMap[k][1]}</div>`).join('')}</div>`; }
                 contentHTML += `</div></div>`;
             } else if(item.isWed && (item.t.startsWith("SPOSO:") || item.t.startsWith("SPOSA:") || item.t.startsWith("CHIESA:"))) {
                 const tid = item.id+"_tel"; const vid = item.id+"_via";
@@ -263,22 +218,13 @@ function renderGiorno() {
 
 function cambiaColoreMultiplo(id, campoC, colore) { const valAtt = datiGiorno[id]?.[campoC]; db.ref(`agenda/${giornoCorrente}/${id}`).update({[campoC]: (valAtt === colore ? 'def' : colore)}); }
 
-// SALVATAGGIO CON LOG NOTIFICA
 function salvaCampo(id, campo, valore, oraDef, isSub=false) { 
     const up = {[campo]:valore}; 
     if(oraDef!==undefined) up.h=oraDef; 
     if(isSub) up.isSub=true; 
     db.ref(`agenda/${giornoCorrente}/${id}`).update(up); 
-
-    // Se modifico il testo, registro nel log notifiche
     if (campo === 't' && valore.trim().length > 1 && !isSub) {
-        db.ref('notifiche_log').push({
-            timestamp: Date.now(),
-            dataGiorno: giornoCorrente,
-            rigaId: id,
-            oraRiga: oraDef || '00:00',
-            testo: valore.substring(0, 30) + (valore.length > 30 ? '...' : '')
-        });
+        db.ref('notifiche_log').push({ timestamp: Date.now(), dataGiorno: giornoCorrente, rigaId: id, oraRiga: oraDef || '00:00', testo: valore.substring(0, 30) + (valore.length > 30 ? '...' : '') });
     }
 }
 
@@ -287,7 +233,22 @@ function del(id) { if(confirm("Eliminare?")) { db.ref(`agenda/${giornoCorrente}/
 function salvaStatoOra(v) { db.ref('config/'+giornoCorrente).update({mostraOra:v}); renderGiorno(); }
 function salvaStatoRighe(v) { db.ref('config/'+giornoCorrente).update({mostraRighe:v}); renderGiorno(); }
 function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
-function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; if(v==='m') initCalendar(); }
+
+// --- MODIFICA CHIRURGICA TOGGLE VISTA ---
+function toggleVista(v) { 
+    const vGiorno = document.getElementById('vGiorno');
+    const vMese = document.getElementById('vMese');
+    if(v==='g') {
+        vGiorno.style.display = 'block';
+        vMese.style.display = 'none';
+    } else {
+        vGiorno.style.display = 'none';
+        vMese.style.display = 'block';
+        initCalendar(); // Riesegue il calcolo delle celle
+        vMese.scrollLeft = 0; // Reset scroll orizzontale
+    }
+}
+
 function openModal(id) { document.getElementById(id).style.display='flex'; }
 function closeModal(id) { document.getElementById(id).style.display='none'; }
 function aggiungiRigaExtra() { const id = "ex" + Date.now(); db.ref(`agenda/${giornoCorrente}/${id}`).set({h:"00:00", t:"", c:"def", sort:999}); }
@@ -317,25 +278,14 @@ function condividiWhatsApp() {
     if (!giornoCorrente) { alert("Seleziona prima un giorno."); return; }
     const tit = document.getElementById('titoloGiorno').value || "Agenda";
     let msg = `📅 *${tit}* (${giornoCorrente})\n\n`;
-    if (datiGiorno) {
-        Object.values(datiGiorno).sort((a,b)=>(a.sort||0)-(b.sort||0)).forEach(i => {
-            if(i.isBattesimoBlock) {
-                msg += `• *${i.titolo_bat || 'BATTESIMO'}*\n${i.cerimonia_h? '*'+i.cerimonia_h+'* ':''}${i.cerimonia_t}\n${i.ricevimento_h? '*'+i.ricevimento_h+'* ':''}${i.ricevimento_t}\n${i.note_t}\n`;
-            } else if(!i.isSub && !i.isAdmin && i.t && i.t.length > 2) {
-                msg += `• ${i.h && i.h !== '00:00' ? '*' + i.h + '* ' : ''}${i.t}\n`;
-            }
-        });
-    }
-    const whatsappLink = "https://wa.me/?text=" + encodeURIComponent(msg);
-    window.open(whatsappLink, '_blank');
+    if (datiGiorno) { Object.values(datiGiorno).sort((a,b)=>(a.sort||0)-(b.sort||0)).forEach(i => { if(i.isBattesimoBlock) { msg += `• *${i.titolo_bat || 'BATTESIMO'}*\n${i.cerimonia_h? '*'+i.cerimonia_h+'* ':''}${i.cerimonia_t}\n${i.ricevimento_h? '*'+i.ricevimento_h+'* ':''}${i.ricevimento_t}\n${i.note_t}\n`; } else if(!i.isSub && !i.isAdmin && i.t && i.t.length > 2) { msg += `• ${i.h && i.h !== '00:00' ? '*' + i.h + '* ' : ''}${i.t}\n`; } }); }
+    window.open("https://wa.me/?text=" + encodeURIComponent(msg), '_blank');
 }
 
 function openChartModal() { openModal('chartModal'); fetchAndDraw(); }
 function fetchAndDraw() {
     db.ref('agenda').once('value', snapshot => {
-        const allData = snapshot.val() || {}; 
-        const stats = categories.map(() => new Array(12).fill(0)); 
-        let total = 0;
+        const allData = snapshot.val() || {}; const stats = categories.map(() => new Array(12).fill(0)); let total = 0;
         Object.keys(allData).forEach(date => { 
             if(!date.startsWith("2026")) return; 
             const mIdx = parseInt(date.split("-")[1])-1; 
@@ -343,30 +293,13 @@ function fetchAndDraw() {
                 if(item.isBattesimoBlock) { stats[1][mIdx]++; total++; return; } 
                 if(!item.t || item.isSub) return; 
                 const txt = item.t.toLowerCase(); 
-                categories.forEach((cat, cIdx) => { 
-                    if(cat.keys.some(k=>txt.includes(k))) { stats[cIdx][mIdx]++; total++; } 
-                }); 
+                categories.forEach((cat, cIdx) => { if(cat.keys.some(k=>txt.includes(k))) { stats[cIdx][mIdx]++; total++; } }); 
             }); 
         });
         document.getElementById('totalWorkCount').innerText = total; 
         const ctx = document.getElementById('workChart').getContext('2d'); 
         if(myChart) myChart.destroy();
-        myChart = new Chart(ctx, { 
-            type: 'line', 
-            data: { 
-                labels:['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'], 
-                datasets: categories.map((cat, i) => ({
-                    label: cat.label, 
-                    data: stats[i], 
-                    borderColor: cat.color, 
-                    backgroundColor: cat.color, 
-                    tension: 0.3, 
-                    fill: false, 
-                    pointRadius: 4
-                })) 
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        myChart = new Chart(ctx, { type: 'line', data: { labels:['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'], datasets: categories.map((cat, i) => ({ label: cat.label, data: stats[i], borderColor: cat.color, backgroundColor: cat.color, tension: 0.3, fill: false, pointRadius: 4 })) }, options: { responsive: true, maintainAspectRatio: false } });
         document.getElementById('statsLegend').innerHTML = categories.map(cat => `<div class="leg-item"><div class="leg-col" style="background:${cat.color}"></div>${cat.label}</div>`).join('');
     });
 }
