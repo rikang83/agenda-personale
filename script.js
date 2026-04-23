@@ -312,3 +312,43 @@ function fetchAndDraw() {
     });
 }
 window.onload = initCalendar;
+// --- GESTIONE SWIPE PER CAMBIARE MESE ---
+let touchstartX = 0;
+let touchendX = 0;
+
+const vMeseContainer = document.getElementById('vMese');
+
+vMeseContainer.addEventListener('touchstart', e => {
+    touchstartX = e.changedTouches[0].screenX;
+}, false);
+
+vMeseContainer.addEventListener('touchend', e => {
+    touchendX = e.changedTouches[0].screenX;
+    handleGesture();
+}, false);
+
+function handleGesture() {
+    const soglia = 100; // Pixel minimi per attivare lo swipe
+    const mp = document.getElementById('monthPicker');
+    
+    if (touchendX < touchstartX - soglia) {
+        // Swipe a Sinistra -> Mese Successivo
+        cambiaMeseOffset(1);
+    }
+    if (touchendX > touchstartX + soglia) {
+        // Swipe a Destra -> Mese Precedente
+        cambiaMeseOffset(-1);
+    }
+}
+
+function cambiaMeseOffset(offset) {
+    const mp = document.getElementById('monthPicker');
+    let currentIndex = mp.selectedIndex;
+    let newIndex = currentIndex + offset;
+    
+    if (newIndex >= 0 && newIndex < mp.options.length) {
+        mp.selectedIndex = newIndex;
+        // Triggeriamo manualmente l'evento onchange
+        initCalendar(); 
+    }
+}
