@@ -66,34 +66,45 @@ input:checked + .slider:before { transform: translateX(14px); }
 .dot, .dot-s { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); opacity: 0.4; }
 .dot.active, .dot-s.active { opacity: 1; border: 2px solid #333; transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-/* --- SOLUZIONE DEFINITIVA VISTA MESE --- */
+/* --- VISTA MESE: FORZA SCROLL ORIZZONTALE --- */
 #vMese { 
-    display: none; /* Iniziale */
-    width: 100vw; 
-    overflow-x: auto !important; /* Forza lo scroll orizzontale */
+    display: none; 
+    width: 100% !important; 
+    overflow-x: auto !important; /* Forza la comparsa dello scroll */
     overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch; /* Rende lo scroll fluido su iPhone/Android */
     background: #f0f2f5;
-    position: relative;
 }
 
 .grid-mese { 
-    display: grid; 
-    grid-template-columns: repeat(7, 120px); /* Forza ogni colonna a 120px: totale 840px */
+    display: grid !important; 
+    /* 7 colonne da 130px l'una = 910px totali. Questo GARANTISCE lo scroll su mobile */
+    grid-template-columns: repeat(7, 130px) !important; 
     gap: 1px; 
     background: #ddd; 
-    width: max-content; /* Fondamentale: si allarga quanto servono le colonne */
+    width: max-content !important; /* Impedisce alla griglia di restringersi */
     border: 1px solid #ddd;
 }
 
 .cell-mese { 
     background: white; 
-    min-height: 140px; /* Un po' più alta per contenere i testi */
-    width: 120px;
-    padding: 5px; 
+    min-height: 150px !important; 
+    width: 130px !important; /* Coerente con la colonna della griglia */
+    padding: 8px; 
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    position: relative;
+}
+
+/* Evita che le etichette degli impegni escano fuori dalla cella */
+.item-mese {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    margin-bottom: 2px;
 }
 /* ------------------------------------- */
 
