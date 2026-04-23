@@ -235,28 +235,25 @@ function salvaStatoRighe(v) { db.ref('config/'+giornoCorrente).update({mostraRig
 function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); }
 
 // --- MODIFICA CHIRURGICA TOGGLE VISTA ---
-function toggleVista(v) { 
-    const vGiorno = document.getElementById('vGiorno');
-    const vMese = document.getElementById('vMese');
+function toggleVista(v) {
+    const vg = document.getElementById('vGiorno');
+    const vm = document.getElementById('vMese');
     
-    if(v === 'g') {
-        vGiorno.style.display = 'block';
-        vMese.style.display = 'none';
-        document.body.style.overflowY = "auto"; // Riattiva scroll verticale
-    } else {
-        vGiorno.style.display = 'none';
-        vMese.style.display = 'block'; 
+    if (v === 'm') {
+        vg.style.display = 'none';
+        vm.style.display = 'block';
         
-        // Forza il calcolo della griglia
-        initCalendar(); 
+        // Rigenera il calendario per sicurezza
+        initCalendar();
         
-        // Cruciale: se il body ha "overflow: hidden" lo scroll della griglia potrebbe bloccarsi
-        document.body.style.overflowX = "hidden"; 
-
-        // Riporta lo scroll all'inizio ogni volta che entri nel mese
+        // Piccola pausa per permettere al browser di calcolare lo scroll
         setTimeout(() => {
-            vMese.scrollLeft = 0;
+            vm.scrollLeft = 0; // Parte da Lunedì
         }, 50);
+        
+    } else {
+        vg.style.display = 'block';
+        vm.style.display = 'none';
     }
 }
 
