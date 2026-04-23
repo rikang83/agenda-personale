@@ -22,56 +22,86 @@ const categories = [
     { label: 'In Studio', keys: ['in studio'], color: '#4caf50' }
 ];
 
-// --- LOGICA NOTIFICHE ---
+// --- LOGICA NOTIFICHE AVANZATA ---
 function setupNotifiche() {
     const list = document.getElementById('notif-list');
-    const badge = document.getElementById('notif-badge');
     
-    // Ascolta i cambiamenti in tutta l'agenda
-    db.ref('agenda').limitToLast(1).on('child_changed', (snapshot) => {
-        const dataStr = snapshot.key; // Es: 2026-05-15
-        creaNotifica(dataStr, "Modifica");
-    });
+    // Ascolta il log delle notifiche (ultime 30)
+    db.ref('notifiche_log').orderByChild('timestamp').limitToLast(30).on('value', (snapshot) => {
+        const logs = snapshot.val() || {};
+        list.innerHTML = "";
+        let unread = 0;
+        const oraAttuale = Date.now();
 
-    db.ref('agenda').limitToLast(1).on('child_added', (snapshot) => {
-        // Ignora il caricamento iniziale massivo confrontando i timestamp se necessario, 
-        // o semplicemente attiva dopo l'init
-        if (giornoCorrente) { 
-            creaNotifica(snapshot.key, "Nuovo inserimento");
-        }
+        // Trasformiamo in array e ordiniamo per il più recente
+        Object.keys(logs).reverse().forEach(key => {
+            const n = logs[key];
+            
+            // 1. CANCELLAZIONE AUTOMATICA DOPO 24 ORE
+            if (oraAttuale - n.timestamp > 86400000) {
+                db.ref('notifiche_log/' + key).remove();
+                return;
+            }
+
+            // Controllo se letta via localStorage
+            const isRead = localStorage.getItem('read_' + key);
+            if (!isRead) unread++;
+
+            const item = document.createElement('div');
+            item.className = 'notif-item';
+            // Evidenziatore se non letta (usiamo una variabile CSS o colore fisso)
+            if (!isRead) item.style.backgroundColor = '#fff9c4'; 
+            
+            const dataModifica = new Date(n.timestamp).toLocaleString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+            
+            // Layout: riga 1 piccola (info), riga 2 grande (contenuto)
+            item.innerHTML = `
+                <div style="font-size: 10px; color: #666; margin-bottom: 2px;">Modifica del ${dataModifica} - Giorno ${n.dataGiorno}</div>
+                <div style="font-size: 14px; font-weight: bold; color: #333;">Ora: ${n.oraRiga} - ${n.testo}</div>
+            `;
+
+            item.onclick = () => {
+                localStorage.setItem('read_' + key, 'true');
+                item.style.backgroundColor = 'transparent';
+                
+                // Navigazione
+                if(document.getElementById('vMese').style.display !== 'none') toggleVista('g');
+                selezionaGiorno(n.dataGiorno, true);
+                
+                // Scroll al punto esatto dopo il render
+                setTimeout(() => {
+                    const rigaEl = document.getElementById('slot-' + n.rigaId);
+                    if (rigaEl) {
+                        rigaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        rigaEl.style.transition = 'background 0.5s';
+                        rigaEl.style.backgroundColor = '#fff9c4';
+                        setTimeout(() => rigaEl.style.backgroundColor = 'transparent', 2000);
+                    }
+                }, 600);
+                
+                closeModal('notifModal');
+                aggiornaBadge(unread - 1);
+            };
+            list.appendChild(item);
+        });
+
+        notifCount = unread;
+        aggiornaBadge(unread);
     });
 }
 
-function creaNotifica(dataStr, tipo) {
-    const list = document.getElementById('notif-list');
+function aggiornaBadge(count) {
     const badge = document.getElementById('notif-badge');
-    
-    notifCount++;
-    badge.innerText = notifCount;
-    badge.style.display = 'flex';
-    badge.classList.add('badge-new');
-
-    const item = document.createElement('div');
-    item.className = 'notif-item';
-    const ora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    
-    item.innerHTML = `
-        <b>${tipo}</b> nel giorno <b>${dataStr}</b>
-        <small>Rilevato alle ${ora}</small>
-    `;
-    item.onclick = () => {
-        selezionaGiorno(dataStr, true);
-        closeModal('notifModal');
-    };
-    list.prepend(item);
+    if (count > 0) {
+        badge.innerText = count;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
 }
 
 function toggleNotifiche() {
     openModal('notifModal');
-    const badge = document.getElementById('notif-badge');
-    notifCount = 0;
-    badge.style.display = 'none';
-    badge.classList.remove('badge-new');
 }
 
 // --- FUNZIONI CORE ---
@@ -88,7 +118,7 @@ function initCalendar() {
         mp.value = `2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
         const si = document.getElementById('repHInizio'); const sf = document.getElementById('repHFine');
         orariFissi.forEach(h => { si.add(new Option(h, h)); sf.add(new Option(h, h)); });
-        setupNotifiche(); // Attiva notifiche al primo avvio
+        setupNotifiche();
     }
     const [y, m] = mp.value.split('-').map(Number);
     const strip = document.getElementById('strip'); strip.innerHTML = "";
@@ -203,7 +233,7 @@ function renderGiorno() {
     sorted.forEach((item) => {
         if(item.t || mostraTutteRighe || item.isAdmin || item.isBattesimoBlock || item.id.startsWith("ex") || item.id.startsWith("rep_")) {
             if(item.isBattesimoBlock) {
-                const div = document.createElement('div'); div.className = "macro-battesimo";
+                const div = document.createElement('div'); div.className = "macro-battesimo"; div.id = "slot-" + item.id;
                 div.innerHTML = `<div class="titolo-battesimo"><input type="text" value="${item.titolo_bat || 'BATTESIMO'}" style="background:none; border:none; color:white; font-weight:900; text-align:center; width:80%; outline:none; font-family:inherit; font-size:18px;" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_bat:this.value})"><button onclick="del('${item.id}')" style="float:right; background:none; border:none; color:white; cursor:pointer;">🗑️</button></div>
                     <div style="display:grid; gap:10px;">${['cerimonia', 'ricevimento'].map(key => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value})"></div><div style="flex:1"><textarea class="nota-input" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || ''}</textarea><div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item[key+'_c']===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','${key}_c','${k}')">${colMap[k][1]}</div>`).join('')}</div></div></div>`).join('')}
                     <div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div style="flex:1"><textarea class="nota-input" placeholder="NOTE" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({note_t:this.value})">${item.note_t || ''}</textarea><div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item.note_c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','note_c','${k}')">${colMap[k][1]}</div>`).join('')}</div></div></div>
@@ -232,7 +262,26 @@ function renderGiorno() {
 }
 
 function cambiaColoreMultiplo(id, campoC, colore) { const valAtt = datiGiorno[id]?.[campoC]; db.ref(`agenda/${giornoCorrente}/${id}`).update({[campoC]: (valAtt === colore ? 'def' : colore)}); }
-function salvaCampo(id, campo, valore, oraDef, isSub=false) { const up = {[campo]:valore}; if(oraDef!==undefined) up.h=oraDef; if(isSub) up.isSub=true; db.ref(`agenda/${giornoCorrente}/${id}`).update(up); }
+
+// SALVATAGGIO CON LOG NOTIFICA
+function salvaCampo(id, campo, valore, oraDef, isSub=false) { 
+    const up = {[campo]:valore}; 
+    if(oraDef!==undefined) up.h=oraDef; 
+    if(isSub) up.isSub=true; 
+    db.ref(`agenda/${giornoCorrente}/${id}`).update(up); 
+
+    // Se modifico il testo, registro nel log notifiche
+    if (campo === 't' && valore.trim().length > 1 && !isSub) {
+        db.ref('notifiche_log').push({
+            timestamp: Date.now(),
+            dataGiorno: giornoCorrente,
+            rigaId: id,
+            oraRiga: oraDef || '00:00',
+            testo: valore.substring(0, 30) + (valore.length > 30 ? '...' : '')
+        });
+    }
+}
+
 function cambiaColore(id, c, oraDef) { const newVal = (datiGiorno[id]?.c === c) ? 'def' : c; db.ref(`agenda/${giornoCorrente}/${id}`).update({c:newVal, h:oraDef}); }
 function del(id) { if(confirm("Eliminare?")) { db.ref(`agenda/${giornoCorrente}/${id}`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_tel`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_via`).remove(); } }
 function salvaStatoOra(v) { db.ref('config/'+giornoCorrente).update({mostraOra:v}); renderGiorno(); }
