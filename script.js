@@ -8,7 +8,16 @@ let giorniSelezionatiRep = [];
 let myChart = null;
 
 const orariFissi = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
-const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
+
+// MAPPA COLORI ORIGINALE - RIFERIMENTO UNICO
+const colMap = { 
+    ric: ['#2196f3', 'R'], 
+    a: ['#4caf50', 'A'], 
+    d: ['#ff9800', 'D'], 
+    v: ['#fbc02d', 'V'], 
+    def: ['#ddd', ''] 
+};
+
 const festivi2026 = { "01-01":"Capodanno", "01-06":"Epifania", "04-05":"Pasqua", "04-06":"Pasquetta", "04-25":"Liberazione", "05-01":"Festa Lavoro", "06-02":"Festa Rep.", "08-15":"Ferragosto", "11-01":"Ognissanti", "12-08":"Immacolata", "12-25":"Natale", "12-26":"S. Stefano" };
 
 const categories = [
@@ -22,12 +31,8 @@ const categories = [
 ];
 
 function cleanH(h) { return parseInt((h||"").replace(":","")) || 0; }
-function autoResize(el) { 
-    el.style.height = 'auto'; 
-    el.style.height = el.scrollHeight + 'px'; 
-}
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
-// --- NUOVA FUNZIONE LOG ATTIVITA (CHIRURGICA) ---
 function logAttivita(messaggio, oraEvento = "", isoData = "") {
     const timestamp = Date.now();
     let dataIt = "";
@@ -35,15 +40,7 @@ function logAttivita(messaggio, oraEvento = "", isoData = "") {
         const [y, m, d] = isoData.split("-");
         dataIt = `${d}/${m}/${y}`;
     }
-
-    db.ref('logs').push({
-        msg: messaggio,
-        ora: oraEvento,
-        dataIt: dataIt,
-        iso: isoData,
-        time: timestamp,
-        letta: false
-    });
+    db.ref('logs').push({ msg: messaggio, ora: oraEvento, dataIt: dataIt, iso: isoData, time: timestamp, letta: false });
 }
 
 function initCalendar() {
@@ -61,9 +58,7 @@ function initCalendar() {
     let primoGiorno = new Date(y, m-1, 1).getDay(); 
     let offset = primoGiorno === 0 ? 6 : primoGiorno - 1;
 
-    for(let s=0; s<offset; s++) {
-        corpo.innerHTML += `<div class="cell-mese empty"></div>`;
-    }
+    for(let s=0; s<offset; s++) { corpo.innerHTML += `<div class="cell-mese empty"></div>`; }
     
     for(let d=1; d<=new Date(y, m, 0).getDate(); d++) {
         const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -89,6 +84,7 @@ function initCalendar() {
         dc.onclick = (e) => { if(e.target.tagName !== 'BUTTON') { toggleVista('g'); selezionaGiorno(iso, true); } };
         corpo.appendChild(dc);
 
+        // ASCOLTO TITOLI CALENDARIO
         db.ref('titoli/'+iso).on('value', s => { 
             const el = document.getElementById('m-tit-'+iso); 
             if(el) {
@@ -97,6 +93,7 @@ function initCalendar() {
                 el.style.display = val ? "block" : "none";
                 el.style.backgroundColor = "#eeeeee"; 
                 el.style.color = "#333";
+                
                 categories.forEach(cat => {
                     if(cat.keys.some(key => val.includes(key.toUpperCase()))) {
                         el.style.backgroundColor = cat.color;
@@ -110,6 +107,7 @@ function initCalendar() {
             } 
         });
 
+        // ASCOLTO IMPEGNI CALENDARIO
         db.ref('agenda/'+iso).on('value', s => {
             const box = document.getElementById('m-list-'+iso); if(!box) return; box.innerHTML = "";
             const data = s.val() || {};
@@ -126,6 +124,7 @@ function initCalendar() {
                     const item = document.createElement('div');
                     item.className = "item-mese";
                     item.style.backgroundColor = cHex;
+                    item.style.color = (v.c === 'def' || !v.c) ? "#333" : "white";
                     item.innerHTML = `<span class="ora-m">${v.h && v.h !== '00:00' ? v.h : ''}</span> ${testoBreve}`;
                     box.appendChild(item);
                 }
@@ -137,29 +136,16 @@ function initCalendar() {
 }
 
 function selezionaGiorno(data, scroll = false) {
-    if(giornoCorrente) { 
-        db.ref('agenda/'+giornoCorrente).off(); 
-        db.ref('config/'+giornoCorrente).off(); 
-    }
+    if(giornoCorrente) { db.ref('agenda/'+giornoCorrente).off(); db.ref('config/'+giornoCorrente).off(); }
     giornoCorrente = data;
-    
     const [y, m] = data.split("-");
     const mp = document.getElementById('monthPicker');
     const targetMonth = `${y}-${m}`;
-    if (mp.value !== targetMonth) {
-        mp.value = targetMonth;
-        initCalendar();
-    }
-
+    if (mp.value !== targetMonth) { mp.value = targetMonth; initCalendar(); }
     document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
     const att = document.getElementById('st-'+data); 
-    if(att) { 
-        att.classList.add('active'); 
-        if(scroll) att.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-    }
-    
+    if(att) { att.classList.add('active'); if(scroll) att.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" }); }
     db.ref('titoli/'+data).once('value', s => { document.getElementById('titoloGiorno').value = s.val() || ""; });
-
     db.ref('config/'+data).on('value', s => {
         const conf = s.val() || {};
         document.getElementById('checkOrarioLabel').checked = conf.mostraOra !== false;
@@ -186,19 +172,18 @@ function renderGiorno() {
             if(item.isBattesimoBlock) {
                 const div = document.createElement('div'); div.className = "macro-battesimo";
                 div.innerHTML = `
-                    <input type="text" class="titolo-schema-editabile bg-battesimo" value="${item.titolo_bat || 'BATTESIMO'}" 
-                        onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_bat:this.value.toUpperCase()})">
+                    <input type="text" class="titolo-schema-editabile bg-battesimo" value="${item.titolo_bat || 'BATTESIMO'}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_bat:this.value.toUpperCase()})">
                     <button onclick="del('${item.id}')" style="position:absolute; right:25px; margin-top:-45px; background:none; border:none; color:white; cursor:pointer; font-size:18px;">🗑️</button>
                     <div style="display:grid; gap:10px;">
                         ${['cerimonia', 'ricevimento'].map(key => `
-                            <div class="slot-main" style="background:white; padding:10px; border-radius:10px;">
+                            <div class="slot-main" style="background:white; padding:10px; border-radius:10px; border-left:5px solid ${colMap[item[key+'_c']] ? colMap[item[key+'_c']][0] : colMap.def[0]}">
                                 <div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value})"></div>
                                 <div style="flex:1">
                                     <textarea class="nota-input" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || ''}</textarea>
                                     <div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item[key+'_c']===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','${key}_c','${k}')">${colMap[k][1]}</div>`).join('')}</div>
                                 </div>
                             </div>`).join('')}
-                        <div class="slot-main" style="background:white; padding:10px; border-radius:10px;">
+                        <div class="slot-main" style="background:white; padding:10px; border-radius:10px; border-left:5px solid ${colMap[item.note_c] ? colMap[item.note_c][0] : colMap.def[0]}">
                             <div style="flex:1">
                                 <textarea class="nota-input" placeholder="NOTE" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({note_t:this.value})">${item.note_t || ''}</textarea>
                                 <div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item.note_c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','note_c','${k}')">${colMap[k][1]}</div>`).join('')}</div>
@@ -223,9 +208,11 @@ function renderGiorno() {
             }
 
             const div = document.createElement('div'); div.className = "slot"; div.id = "slot-" + item.id;
-            div.style.borderLeftColor = colMap[item.c]?.[0] || colMap.def[0];
+            
+            // CORREZIONE COLORE BORDO SLOT
+            div.style.borderLeft = `5px solid ${colMap[item.c] ? colMap[item.c][0] : colMap.def[0]}`;
+            
             let contentHTML = "";
-
             if(item.isWed && item.t.startsWith("SPOSO:")) {
                 contentHTML += `<input type="text" class="titolo-schema-editabile bg-matrimonio" value="${item.titolo_mat || 'MATRIMONIO'}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_mat:this.value.toUpperCase()})">`;
             }
@@ -258,9 +245,7 @@ function salvaCampo(id, campo, valore, oraDef, isSub=false) {
     if(oraDef!==undefined) up.h=oraDef; 
     if(isSub) up.isSub=true; 
     db.ref(`agenda/${giornoCorrente}/${id}`).update(up);
-    if(campo === 't' && valore.length > 3) {
-        logAttivita(`Modificato: ${valore.substring(0,30)}`, oraDef, giornoCorrente);
-    }
+    if(campo === 't' && valore.length > 3) { logAttivita(`Modificato: ${valore.substring(0,30)}`, oraDef, giornoCorrente); }
 }
 
 function cambiaColore(id, c, oraDef) { const newVal = (datiGiorno[id]?.c === c) ? 'def' : c; db.ref(`agenda/${giornoCorrente}/${id}`).update({c:newVal, h:oraDef}); }
@@ -366,9 +351,7 @@ function fetchAndDraw() {
                     data: stats[i], 
                     borderColor: cat.color, 
                     backgroundColor: cat.color, 
-                    tension: 0.3, 
-                    fill: false, 
-                    pointRadius: 4
+                    tension: 0.3, fill: false, pointRadius: 4
                 })) 
             },
             options: { responsive: true, maintainAspectRatio: false }
@@ -408,7 +391,6 @@ function monitoraNotifiche() {
 
 window.onload = initCalendar;
 
-// --- SWIPE ---
 let touchstartX = 0;
 let touchendX = 0;
 document.getElementById('vMese').addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, false);
