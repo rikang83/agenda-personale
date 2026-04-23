@@ -352,3 +352,36 @@ function cambiaMeseOffset(offset) {
         initCalendar(); 
     }
 }
+/**
+ * Funzione chirurgica: Segna le notifiche come lette 
+ * Salvataggio persistente solo sul dispositivo locale (localStorage)
+ */
+function segnaTutteLette() {
+    // 1. Salviamo il timestamp attuale per marcare il momento della lettura
+    const timestampLettura = new Date().getTime();
+    localStorage.setItem('notifiche_lette_timestamp', timestampLettura);
+
+    // 2. Applichiamo la classe grafica 'read' a tutti gli elementi correnti
+    const items = document.querySelectorAll('.notif-item');
+    items.forEach(item => {
+        item.classList.add('read');
+    });
+
+    // 3. Resettiamo il badge delle notifiche a 0 e nascondiamolo
+    const badge = document.getElementById('notif-badge');
+    if (badge) {
+        badge.innerText = "0";
+        badge.style.display = 'none';
+    }
+}
+
+/**
+ * Funzione chirurgica: Chiude il modale notifiche
+ */
+function chiudiNotifiche() {
+    closeModal('notifModal');
+}
+
+// Nota: Per rendere la memoria efficace al ricaricamento della pagina,
+// assicurati che la tua funzione esistente che genera la lista (es. toggleNotifiche o caricaNotifiche)
+// controlli se esiste 'notifiche_lette_timestamp' nel localStorage per aggiungere la classe .read
