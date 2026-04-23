@@ -6,7 +6,7 @@
     --festivo-dark: #b71c1c; 
     --evidenza: #fffbe6; 
     --battesimo: #03a9f4;
-    --notif-bg: #fff9c4; /* Giallo tenue per nuove notifiche */
+    --notif-bg: #fff9c4; 
 }
 
 body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
@@ -66,9 +66,34 @@ input:checked + .slider:before { transform: translateX(14px); }
 .dot, .dot-s { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); opacity: 0.4; }
 .dot.active, .dot-s.active { opacity: 1; border: 2px solid #333; transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-/* Vista Mese */
-.grid-mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; }
-.cell-mese { background: white; min-height: 120px; padding: 4px; cursor: pointer; position: relative; transition: background 0.2s; }
+/* --- SEZIONE VISTA MESE AGGIORNATA --- */
+#vMese { 
+    width: 100%; 
+    overflow-x: auto !important; 
+    -webkit-overflow-scrolling: touch; 
+    background: #f0f2f5;
+}
+
+.grid-mese { 
+    display: grid; 
+    grid-template-columns: repeat(7, 1fr); 
+    gap: 1px; 
+    background: #ddd; 
+    min-width: 850px; /* Larghezza minima per garantire lo scroll e l'adattamento */
+    border: 1px solid #ddd;
+}
+
+.cell-mese { 
+    background: white; 
+    min-height: 120px; 
+    padding: 6px; 
+    cursor: pointer; 
+    position: relative; 
+    transition: background 0.2s; 
+    box-sizing: border-box;
+}
+/* ------------------------------------- */
+
 .cell-mese:active { background: #f0f0f0; }
 .cell-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px; }
 .num-giorno { font-weight: 900; font-size: 14px; }
@@ -99,8 +124,6 @@ input:checked + .slider:before { transform: translateX(14px); }
 
 /* Mobile Optimizations */
 @media (max-width: 600px) {
-    #vMese { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    #vMese .grid-mese { min-width: 700px; }
     .admin-grid { grid-template-columns: 1fr 1fr; }
     .admin-label-row { grid-column: span 2; background: #eee; padding: 2px 5px; }
 }
