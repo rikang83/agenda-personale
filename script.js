@@ -6,7 +6,6 @@ let giornoCorrente = "";
 let datiGiorno = {};
 let giorniSelezionatiRep = [];
 let myChart = null;
-let ultimoAccessoNotifiche = localStorage.getItem('ultimoAccessoNotifiche') || 0;
 
 const orariFissi = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
 const colMap = { ric:['#2196f3','R'], a:['#4caf50','A'], d:['#ff9800','D'], v:['#fbc02d','V'], def:['#ddd',''] };
@@ -28,10 +27,9 @@ function autoResize(el) {
     el.style.height = el.scrollHeight + 'px'; 
 }
 
-// --- NUOVA FUNZIONE LOG ATTIVITA ---
+// --- NUOVA FUNZIONE LOG ATTIVITA (CHIRURGICA) ---
 function logAttivita(messaggio, oraEvento = "", isoData = "") {
     const timestamp = Date.now();
-    // Formattiamo la data in versione italiana GG/MM/AAAA
     let dataIt = "";
     if (isoData) {
         const [y, m, d] = isoData.split("-");
@@ -135,7 +133,7 @@ function initCalendar() {
         });
     }
     selezionaGiorno(new Date().toISOString().split('T')[0], true);
-    monitoraNotifiche(); // Avvia monitoraggio badge
+    monitoraNotifiche(); 
 }
 
 function selezionaGiorno(data, scroll = false) {
@@ -144,6 +142,16 @@ function selezionaGiorno(data, scroll = false) {
         db.ref('config/'+giornoCorrente).off(); 
     }
     giornoCorrente = data;
+    
+    // Gestione cambio mese automatico se clicco da notifica
+    const [y, m] = data.split("-");
+    const mp = document.getElementById('monthPicker');
+    const targetMonth = `${y}-${m}`;
+    if (mp.value !== targetMonth) {
+        mp.value = targetMonth;
+        initCalendar();
+    }
+
     document.querySelectorAll('.day-item').forEach(i => i.classList.remove('active'));
     const att = document.getElementById('st-'+data); 
     if(att) { 
@@ -243,19 +251,26 @@ function renderGiorno() {
 }
 
 function cambiaColoreMultiplo(id, campoC, colore) { const valAtt = datiGiorno[id]?.[campoC]; db.ref(`agenda/${giornoCorrente}/${id}`).update({[campoC]: (valAtt === colore ? 'def' : colore)}); }
+
 function salvaCampo(id, campo, valore, oraDef, isSub=false) { 
+    const valVecchio = isSub ? (datiGiorno[id]?.t || "") : (datiGiorno[id]?.[campo] || "");
+    if(valore === valVecchio) return;
+
     const up = {[campo]:valore}; 
     if(oraDef!==undefined) up.h=oraDef; 
     if(isSub) up.isSub=true; 
     db.ref(`agenda/${giornoCorrente}/${id}`).update(up);
-    // Log se il testo è significativo
-    if(campo === 't' && valore.length > 3) logAttivita(`Modificato: ${valore.substring(0,20)}... (il ${giornoCorrente})`);
+
+    if(campo === 't' && valore.length > 3) {
+        logAttivita(`Modificato: ${valore.substring(0,30)}`, oraDef, giornoCorrente);
+    }
 }
+
 function cambiaColore(id, c, oraDef) { const newVal = (datiGiorno[id]?.c === c) ? 'def' : c; db.ref(`agenda/${giornoCorrente}/${id}`).update({c:newVal, h:oraDef}); }
 function del(id) { if(confirm("Eliminare?")) { db.ref(`agenda/${giornoCorrente}/${id}`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_tel`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_via`).remove(); } }
 function salvaStatoOra(v) { db.ref('config/'+giornoCorrente).update({mostraOra:v}); renderGiorno(); }
 function salvaStatoRighe(v) { db.ref('config/'+giornoCorrente).update({mostraRighe:v}); renderGiorno(); }
-function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); logAttivita(`Nuovo Titolo Giorno: ${v} (${giornoCorrente})`); }
+function salvaTitolo(v) { db.ref('titoli/'+giornoCorrente).set(v); logAttivita(`Titolo: ${v}`, "", giornoCorrente); }
 function toggleVista(v) { document.getElementById('vGiorno').style.display = v==='g'?'block':'none'; document.getElementById('vMese').style.display = v==='m'?'block':'none'; if(v==='m') initCalendar(); }
 function openModal(id) { document.getElementById(id).style.display='flex'; }
 function closeModal(id) { document.getElementById(id).style.display='none'; }
@@ -264,15 +279,12 @@ function aggiungiRigaExtra() { const id = "ex" + Date.now(); db.ref(`agenda/${gi
 function applicaSchemaMatrimonio() {
     const ts = Date.now(); 
     db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    
     const titSpec = "MATRIMONIO";
-    
     db.ref('titoli/'+giornoCorrente).once('value', s => { 
         let tOld = s.val() || ""; 
         let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec + " A "; 
         db.ref('titoli/'+giornoCorrente).set(tNew); 
     });
-    
     const sc = [{id:"m"+ts+"_1",t:"SPOSO: ",s:1, tit: titSpec},{id:"m"+ts+"_2",t:"SPOSA: ",s:2},{id:"m"+ts+"_3",t:"CHIESA: ",s:3},{id:"m"+ts+"_4",t:"SALA: ",s:4},{id:"m"+ts+"_5",t:"ESTERNI:",s:5},{id:"m"+ts+"_6",t:"NOTE: ",s:6},{id:"adm_"+ts,isAdmin:true,s:7}];
     sc.forEach(i => { 
         if(i.isAdmin) db.ref(`agenda/${giornoCorrente}/${i.id}`).set({h:"00:00", isAdmin:true, sort:i.s, contratto:false, foto:false, video:false, operatore:""}); 
@@ -286,16 +298,14 @@ function applicaSchemaMatrimonio() {
             } 
         } 
     });
-    logAttivita(`Schema MATRIMONIO aggiunto il ${giornoCorrente}`);
+    logAttivita(`Aggiunto Schema MATRIMONIO`, "", giornoCorrente);
     closeModal('mainModal');
 }
 
 function applicaSchemaBattesimo() {
     const ts = Date.now(); 
     db.ref('config/'+giornoCorrente).update({mostraOra:false, mostraRighe:false});
-    
     const titSpec = "BATTESIMO";
-    
     db.ref('titoli/'+giornoCorrente).once('value', s => { 
         let tOld = s.val() || ""; 
         let tNew = tOld ? (tOld.includes(titSpec) ? tOld : tOld + " E " + titSpec) : titSpec; 
@@ -303,15 +313,15 @@ function applicaSchemaBattesimo() {
     });
     const id = "bat_" + ts; 
     db.ref(`agenda/${giornoCorrente}/${id}`).set({ isBattesimoBlock: true, sort: 1, titolo_bat: titSpec, cerimonia_h: "", cerimonia_t: "", cerimonia_c: "def", ricevimento_h: "", ricevimento_t: "", ricevimento_c: "def", note_t: "", note_c: "def", foto: false, op_foto: "", video: false, op_video: "", acc1: "", dat1: "", chi1: "def" });
-    logAttivita(`Schema BATTESIMO aggiunto il ${giornoCorrente}`);
+    logAttivita(`Aggiunto Schema BATTESIMO`, "", giornoCorrente);
     closeModal('mainModal');
 }
 
 function openRepModal() { document.getElementById('repTesto').value=""; document.getElementById('repDataFine').value=giornoCorrente; giorniSelezionatiRep=[]; document.querySelectorAll('.dot-day-rep').forEach(d=>d.classList.remove('active')); openModal('repModal'); }
 function toggleRepDay(el,d) { if(giorniSelezionatiRep.includes(d)) { giorniSelezionatiRep=giorniSelezionatiRep.filter(x=>x!==d); el.classList.remove('active'); } else { giorniSelezionatiRep.push(d); el.classList.add('active'); } }
-function eseguiRipetizione() { const t=document.getElementById('repTesto').value, h=document.getElementById('repHInizio').value, df=document.getElementById('repDataFine').value; if(!t||!df||giorniSelezionatiRep.length===0) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { if(giorniSelezionatiRep.includes(cur.getDay())) { db.ref(`agenda/${cur.toISOString().split('T')[0]}/rep_${Date.now()}_${cur.getTime()}`).set({h:h, t:t, c:'def', sort:cleanH(h)}); } cur.setDate(cur.getDate()+1); } logAttivita(`Aggiunta ripetizione: ${t}`); closeModal('repModal'); }
-function cancellaRipetizioniInBlocco() { const df=document.getElementById('repDataFine').value; if(!df||!confirm("Eliminare?")) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { let iso=cur.toISOString().split('T')[0]; db.ref(`agenda/${iso}`).once('value', s=>{ let d=s.val(); if(d) Object.keys(d).forEach(k=>{ if(k.startsWith('rep_')) db.ref(`agenda/${iso}/${k}`).remove(); }); }); cur.setDate(cur.getDate()+1); } logAttivita(`Cancellate ripetizioni in blocco`); closeModal('repModal'); }
-function pulisciTuttoGiorno(iso, e) { if(e) e.stopPropagation(); if(confirm("Svuotare?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); logAttivita(`Svuotata giornata: ${iso}`); } }
+function eseguiRipetizione() { const t=document.getElementById('repTesto').value, h=document.getElementById('repHInizio').value, df=document.getElementById('repDataFine').value; if(!t||!df||giorniSelezionatiRep.length===0) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { if(giorniSelezionatiRep.includes(cur.getDay())) { db.ref(`agenda/${cur.toISOString().split('T')[0]}/rep_${Date.now()}_${cur.getTime()}`).set({h:h, t:t, c:'def', sort:cleanH(h)}); } cur.setDate(cur.getDate()+1); } logAttivita(`Ripetizione: ${t}`); closeModal('repModal'); }
+function cancellaRipetizioniInBlocco() { const df=document.getElementById('repDataFine').value; if(!df||!confirm("Eliminare?")) return; let cur=new Date(giornoCorrente), fine=new Date(df); while(cur<=fine) { let iso=cur.toISOString().split('T')[0]; db.ref(`agenda/${iso}`).once('value', s=>{ let d=s.val(); if(d) Object.keys(d).forEach(k=>{ if(k.startsWith('rep_')) db.ref(`agenda/${iso}/${k}`).remove(); }); }); cur.setDate(cur.getDate()+1); } logAttivita(`Cancellate ripetizioni`); closeModal('repModal'); }
+function pulisciTuttoGiorno(iso, e) { if(e) e.stopPropagation(); if(confirm("Svuotare?")) { db.ref('agenda/'+iso).remove(); db.ref('titoli/'+iso).remove(); db.ref('config/'+iso).remove(); logAttivita(`Svuotata giornata`, "", iso); } }
 
 function condividiWhatsApp() {
     if (!giornoCorrente) { alert("Seleziona prima un giorno."); return; }
@@ -371,54 +381,59 @@ function fetchAndDraw() {
     });
 }
 
-// --- LOGICA CENTRO NOTIFICHE ---
+// --- LOGICA CENTRO NOTIFICHE (CHIRURGICA) ---
 function monitoraNotifiche() {
-    db.ref('logs').limitToLast(20).on('value', s => {
+    db.ref('logs').on('value', s => {
         const logs = s.val() || {};
-        const lista = Object.values(logs).reverse();
         const contenitore = document.getElementById('notif-list');
         const badge = document.getElementById('notif-badge');
-        
         contenitore.innerHTML = "";
         let nuovi = 0;
+        const oraAttuale = Date.now();
 
-        lista.forEach(l => {
-            if (l.time > ultimoAccessoNotifiche) nuovi++;
+        const chiavi = Object.keys(logs).reverse();
+        chiavi.forEach(key => {
+            const l = logs[key];
             
+            // Auto-pulizia: se è letta da più di 24 ore, la cancello dal DB
+            if (l.letta && (oraAttuale - l.time > 86400000)) {
+                db.ref('logs/' + key).remove();
+                return;
+            }
+
+            if (!l.letta) nuovi++;
+
             const item = document.createElement('div');
-            item.style.padding = "10px";
+            item.className = "notif-item";
+            item.style.padding = "12px";
             item.style.borderBottom = "1px solid #eee";
-            item.style.backgroundColor = l.time > ultimoAccessoNotifiche ? "#fff9c4" : "transparent";
-            item.style.borderRadius = "5px";
-            item.style.marginBottom = "5px";
+            item.style.backgroundColor = l.letta ? "transparent" : "#fffde7";
+            item.style.cursor = "pointer";
             
             const dataOra = new Date(l.time).toLocaleString('it-IT', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'});
-            item.innerHTML = `<small style="color:gray; font-size:10px;">${dataOra}</small><br><span style="color:#333;">${l.msg}</span>`;
+            item.innerHTML = `
+                <div style="font-size:10px; color:#888; margin-bottom:3px;">${dataOra}</div>
+                <div style="font-weight:${l.letta?'normal':'bold'}; color:#333;">${l.msg}</div>
+                <div style="font-size:11px; color:var(--p); margin-top:3px;">${l.dataIt ? '📅 Vai al ' + l.dataIt : ''} ${l.ora ? ' 🕒 ore ' + l.ora : ''}</div>
+            `;
+
+            item.onclick = () => {
+                db.ref('logs/' + key).update({ letta: true });
+                if (l.iso) {
+                    toggleVista('g');
+                    selezionaGiorno(l.iso, true);
+                    closeModal('notifModal');
+                }
+            };
             contenitore.appendChild(item);
         });
 
-        if (nuovi > 0) {
-            badge.innerText = nuovi;
-            badge.style.display = "flex";
-        } else {
-            badge.style.display = "none";
-        }
+        badge.innerText = nuovi;
+        badge.style.display = nuovi > 0 ? "flex" : "none";
     });
 }
 
-function toggleNotifiche() {
-    openModal('notifModal');
-}
-
-function segnaComeLette() {
-    ultimoAccessoNotifiche = Date.now();
-    localStorage.setItem('ultimoAccessoNotifiche', ultimoAccessoNotifiche);
-    document.getElementById('notif-badge').style.display = "none";
-    // Forziamo il re-render della lista per togliere il giallo
-    const items = document.querySelectorAll('#notif-list > div');
-    items.forEach(it => it.style.backgroundColor = "transparent");
-    closeModal('notifModal');
-}
+function toggleNotifiche() { openModal('notifModal'); }
 
 window.onload = initCalendar;
 
