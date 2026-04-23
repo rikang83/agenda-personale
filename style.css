@@ -66,101 +66,80 @@ input:checked + .slider:before { transform: translateX(14px); }
 .dot, .dot-s { width: 28px; height: 28px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); opacity: 0.4; }
 .dot.active, .dot-s.active { opacity: 1; border: 2px solid #333; transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-/* --- FIX VISTA MESE DEFINITIVO --- */
+/* --- VISTA MESE: SCHERMATA UNICA (NO SCROLL) --- */
 
 #vMese {
     display: none; 
     width: 100%;
-    /* Permette lo scroll orizzontale se la griglia eccede lo schermo */
-    overflow-x: auto !important; 
-    overflow-y: hidden;
+    overflow-x: hidden !important; 
     background: #f0f2f5;
-    -webkit-overflow-scrolling: touch;
-    /* Importante: permette al JS di leggere lo swipe orizzontale */
     touch-action: pan-y; 
 }
 
 .grid-mese {
     display: grid !important;
-    /* Ogni colonna occupa 1 frazione, ma non scende MAI sotto i 110px */
-    /* Questo garantisce adattamento su tablet e scroll su smartphone */
-    grid-template-columns: repeat(7, minmax(110px, 1fr)) !important;
-    width: 100%;
-    /* Impedisce alla griglia di restringersi sotto la somma dei minmax */
-    min-width: max-content; 
+    grid-template-columns: repeat(7, 1fr) !important; /* 7 colonne uguali */
+    width: 100% !important;
     background: #ddd;
     gap: 1px;
     border-bottom: 1px solid #ddd;
+    box-sizing: border-box;
 }
 
-/* Intestazioni giorni (LUN, MAR...) */
 .nome-giorno {
     background: var(--p);
     color: white;
     text-align: center;
-    padding: 12px 0;
+    padding: 8px 1px;
     font-weight: bold;
-    font-size: 11px;
+    font-size: 10px; /* Testo piccolo per mobile */
     text-transform: uppercase;
 }
 
-/* Le singole celle del mese */
 .cell-mese {
     background: white;
-    min-height: 120px; 
-    padding: 6px;
+    min-height: 85px; /* Altezza ridotta per stare in una schermata */
+    padding: 4px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 2px;
     cursor: pointer;
-    transition: background 0.2s;
+    overflow: hidden;
 }
 
-/* Numero del giorno in alto a destra */
 .cell-header {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 4px;
+    width: 100%;
+    margin-bottom: 2px;
 }
 
 .num-giorno {
     font-weight: 900;
-    font-size: 13px;
+    font-size: 11px;
     color: #333;
 }
 
-/* Impegni dentro le celle (compatti) */
 .item-mese {
-    font-size: 9px;
-    padding: 2px 4px;
+    font-size: 8px;
+    padding: 1px 3px;
     border-radius: 3px;
     color: white;
     font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.2;
-    margin-bottom: 1px;
+    line-height: 1.1;
 }
 
-/* Colori stati speciali nelle celle */
 .cell-mese.holiday { background: #fff5f5; }
 .cell-mese.nat-holiday { background: #ffebee; }
 .cell-mese.active { background: #e8f0fe; }
 
-/* Forza la testata a seguire la larghezza della griglia */
 #corpoMeseHead {
-    width: 100%;
-    min-width: max-content;
+    width: 100% !important;
 }
-
-/* ------------------------------------- */
-
-.cell-mese:active { background: #f0f0f0; }
-.cell-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px; }
-.num-giorno { font-weight: 900; font-size: 14px; }
-.item-mese { border-radius: 4px; padding: 2px 4px; font-weight: bold; font-size: 9px; margin-bottom: 2px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Modali */
 .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
