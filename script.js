@@ -242,17 +242,21 @@ function toggleVista(v) {
     if(v === 'g') {
         vGiorno.style.display = 'block';
         vMese.style.display = 'none';
+        document.body.style.overflowY = "auto"; // Riattiva scroll verticale
     } else {
         vGiorno.style.display = 'none';
-        vMese.style.display = 'block'; // Lo mostriamo prima...
+        vMese.style.display = 'block'; 
         
-        initCalendar(); // ...e poi generiamo i giorni
+        // Forza il calcolo della griglia
+        initCalendar(); 
         
-        // Questo risolve il problema del "non si vede tutto":
-        // Aspettiamo un millisecondo che il browser calcoli lo spazio e resettiamo lo scroll a sinistra
+        // Cruciale: se il body ha "overflow: hidden" lo scroll della griglia potrebbe bloccarsi
+        document.body.style.overflowX = "hidden"; 
+
+        // Riporta lo scroll all'inizio ogni volta che entri nel mese
         setTimeout(() => {
             vMese.scrollLeft = 0;
-        }, 10);
+        }, 50);
     }
 }
 
