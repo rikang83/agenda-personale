@@ -29,9 +29,33 @@ body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; over
 input:checked + .slider { background: var(--a); }
 input:checked + .slider:before { transform: translateX(14px); }
 
-/* Strip Giorni Orizzontale */
-.calendar-strip { display: flex; overflow-x: auto; padding: 15px 10px; background: white; gap: 8px; border-bottom: 1px solid #ddd; scrollbar-width: none; }
-.calendar-strip::-webkit-scrollbar { display: none; }
+/* --- MODIFICA CHIRURGICA: STRIP GIORNI CON SCROLLBAR VISIBILE SU PC --- */
+.calendar-strip { 
+    display: flex; 
+    overflow-x: auto; 
+    padding: 15px 10px; 
+    background: white; 
+    gap: 8px; 
+    border-bottom: 1px solid #ddd; 
+}
+
+/* Stilizzazione barra di navigazione per PC */
+.calendar-strip::-webkit-scrollbar { 
+    height: 6px; 
+    display: block; 
+}
+.calendar-strip::-webkit-scrollbar-track { 
+    background: #f1f1f1; 
+}
+.calendar-strip::-webkit-scrollbar-thumb { 
+    background: #ccc; 
+    border-radius: 10px; 
+}
+.calendar-strip::-webkit-scrollbar-thumb:hover { 
+    background: var(--r); 
+}
+/* ----------------------------------------------------------------------- */
+
 .day-item { min-width: 55px; padding: 10px 5px; border-radius: 10px; border: 1px solid #eee; text-align: center; cursor: pointer; background: white; flex-shrink: 0; transition: 0.2s; }
 .day-item.active { background: var(--r) !important; color: white !important; transform: scale(1.05); }
 .day-item.holiday { background: #ffebee !important; color: var(--festivo) !important; }
@@ -78,7 +102,7 @@ input:checked + .slider:before { transform: translateX(14px); }
 
 .grid-mese {
     display: grid !important;
-    grid-template-columns: repeat(7, 1fr) !important; /* 7 colonne uguali */
+    grid-template-columns: repeat(7, 1fr) !important; 
     width: 100% !important;
     background: #ddd;
     gap: 1px;
@@ -92,13 +116,13 @@ input:checked + .slider:before { transform: translateX(14px); }
     text-align: center;
     padding: 8px 1px;
     font-weight: bold;
-    font-size: 10px; /* Testo piccolo per mobile */
+    font-size: 10px; 
     text-transform: uppercase;
 }
 
 .cell-mese {
     background: white;
-    min-height: 85px; /* Altezza ridotta per stare in una schermata */
+    min-height: 85px; 
     padding: 4px;
     box-sizing: border-box;
     display: flex;
