@@ -404,6 +404,54 @@ function toggleVista(v) {
     else { vg.style.display = 'block'; vm.style.display = 'none'; }
 }
 
+function saltaAggiOggi() {
+    // 1. Calcola la data di oggi
+    const ora = new Date();
+    const y = ora.getFullYear();
+    const m = String(ora.getMonth() + 1).padStart(2, '0');
+    const d = String(ora.getDate()).padStart(2, '0');
+    const oggiStringa = `${y}-${m}-${d}`;
+
+    console.log("Tentativo di salto a oggi: " + oggiStringa);
+
+    // 2. Imposta il mese corretto nel selettore (altrimenti la barra non si sposta)
+    const mp = document.getElementById('monthPicker');
+    if (mp) {
+        mp.value = `${y}-${m}`;
+    }
+
+    // 3. Rigenera la barra dei giorni per il mese corrente
+    if (typeof initCalendar === "function") {
+        initCalendar();
+    }
+
+    // 4. Piccola attesa per permettere alla barra di apparire, poi simula il click sul giorno
+    setTimeout(() => {
+        // Cerchiamo nella "calendar-strip" il quadratino che ha la data di oggi
+        const tuttiIGiorni = document.querySelectorAll('.day-item');
+        let trovato = false;
+
+        tuttiIGiorni.forEach(el => {
+            // Se l'elemento ha un attributo o un onclick che contiene la data di oggi
+            if (el.outerHTML.includes(oggiStringa)) {
+                el.click(); // Simula il click fisico dell'utente
+                trovato = true;
+            }
+        });
+
+        // 5. Se non riesce a cliccare, forza il caricamento manuale
+        if (!trovato) {
+            giornoCorrente = oggiStringa;
+            // Qui chiama la funzione che scarica i dati da Firebase nel tuo script
+            // Se la tua funzione si chiama 'caricaDati' o 'ascoltaGiorno', aggiungila qui
+            if (typeof renderGiorno === "function") renderGiorno();
+        }
+        
+        // Porta la pagina in alto
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 300);
+}
+
 // --- SWIPE ---
 let touchstartX = 0, touchendX = 0;
 const vMeseContainer = document.getElementById('vMese');
