@@ -161,26 +161,59 @@ function selezionaGiorno(data, scroll = false) {
 
 function renderGiorno() {
     const active = document.activeElement;
-    if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT") && active.type !== "checkbox") return;
+    // Non resettiamo se l'utente sta scrivendo in una textarea (per non perdere il focus)
+    // Permettiamo invece il reset se l'utente ha appena finito di scrivere in un input (ora)
+    if (active && active.tagName === "TEXTAREA") return;
+    
     const container = document.getElementById('listaImpegni'), scrollPos = window.scrollY; 
     container.innerHTML = "";
     const mostraTutteRighe = document.getElementById('checkRighe').checked;
     const mostraEtichettaOra = document.getElementById('checkOrarioLabel').checked;
     
-    let visualizzazione = {};
-    if(mostraTutteRighe) orariFissi.forEach(h => { const id = "h" + h.replace(":", ""); visualizzazione[id] = { id: id, h: h, t: "", c: "def", sortKey: cleanH(h) }; });
+    // Funzione interna per trovare il primo orario utile in un blocco (Logica Fallback)
+    const getFirstValidHour = (item, type) => {
+        const priorityWed = ['sposo_h', 'sposa_h', 'chiesa_h', 'sala_h'];
+        const priorityBat = ['cerimonia_h', 'ricevimento_h'];
+        const list = type === 'wed' ? priorityWed : priorityBat;
+        
+        for (let field of list) {
+            if (item[field] && item[field].trim() !== "" && item[field] !== "00:00") {
+                return cleanH(item[field]);
+            }
+        }
+        return 9999; // In fondo se tutto vuoto
+    };
+
+    let visualizzazione = [];
+
+    // 1. Slot vuoti (se attivi)
+    if(mostraTutteRighe) {
+        orariFissi.forEach(h => {
+            visualizzazione.push({ id: "h" + h.replace(":", ""), h: h, t: "", c: "def", sortKey: cleanH(h) });
+        });
+    }
     
+    // 2. Elaborazione Dati con nuova priorità
     Object.keys(datiGiorno).forEach(key => { 
         const item = datiGiorno[key]; 
-        let p = item.sort;
-        if (p === undefined || p === 999 || p === 9999 || p === 1) {
+        let p;
+
+        if (item.isWedBlock) {
+            p = getFirstValidHour(item, 'wed');
+        } else if (item.isBattesimoBlock) {
+            p = getFirstValidHour(item, 'bat');
+        } else {
             p = cleanH(item.h);
-            if ((item.isWedBlock || item.isBattesimoBlock) && (!item.h || item.h === "")) p = 1;
         }
-        visualizzazione[key] = { id: key, ...item, sortKey: p }; 
+        
+        visualizzazione.push({ id: key, ...item, sortKey: p }); 
     });
 
-    const sorted = Object.values(visualizzazione).sort((a,b) => a.sortKey - b.sortKey);
+    // 3. Ordinamento Finale
+    const sorted = visualizzazione.sort((a, b) => {
+        if (a.sortKey !== b.sortKey) return a.sortKey - b.sortKey;
+        return a.id.localeCompare(b.id);
+    });
     
     sorted.forEach((item) => {
         if(item.t || mostraTutteRighe || item.isAdmin || item.isBattesimoBlock || item.isWedBlock || item.id.startsWith("ex") || item.id.startsWith("rep_")) {
@@ -189,7 +222,7 @@ function renderGiorno() {
             if(item.isBattesimoBlock) {
                 const div = document.createElement('div'); div.className = "macro-battesimo"; div.id = "slot-" + item.id;
                 div.innerHTML = `<div class="titolo-battesimo"><input type="text" value="${item.titolo_bat || 'BATTESIMO'}" style="background:none; border:none; color:white; font-weight:900; text-align:center; width:80%; outline:none; font-family:inherit; font-size:18px;" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_bat:this.value})"><button onclick="del('${item.id}')" style="float:right; background:none; border:none; color:white; cursor:pointer;">🗑️</button></div>
-                    <div style="display:grid; gap:10px;">${['cerimonia', 'ricevimento'].map(key => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value})"></div><div style="flex:1"><textarea class="nota-input" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || ''}</textarea><div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item[key+'_c']===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','${key}_c','${k}')">${colMap[k][1]}</div>`).join('')}</div></div></div>`).join('')}
+                    <div style="display:grid; gap:10px;">${['cerimonia', 'ricevimento'].map(key => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value}).then(()=>renderGiorno())"></div><div style="flex:1"><textarea class="nota-input" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || ''}</textarea><div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item[key+'_c']===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','${key}_c','${k}')">${colMap[k][1]}</div>`).join('')}</div></div></div>`).join('')}
                     <div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div style="flex:1"><textarea class="nota-input" placeholder="NOTE" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({note_t:this.value})">${item.note_t || ''}</textarea><div class="color-dots">${Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item.note_c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColoreMultiplo('${item.id}','note_c','${k}')">${colMap[k][1]}</div>`).join('')}</div></div></div>
                     <div class="admin-block" style="border-color:var(--battesimo);"><div class="admin-top-row"><div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div><input type="text" class="input-adm" style="width:120px;" placeholder="FOTOGRAFO" value="${item.op_foto||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({op_foto:this.value})"><div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div><input type="text" class="input-adm" style="width:120px;" placeholder="OPERATORE" value="${item.op_video||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({op_video:this.value})"></div><div class="admin-grid"><div class="admin-label-row">ACCONTO</div><input type="number" class="input-adm" style="width:70px" value="${item.acc1||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({acc1:this.value})"><input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item.dat1||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({dat1:this.value})"><div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item.chi1===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({chi1:'${k}'})">${colMap[k][1]}</div>`).join('')}</div></div></div></div>`;
                 container.appendChild(div); div.querySelectorAll('textarea').forEach(autoResize); return;
@@ -201,11 +234,10 @@ function renderGiorno() {
                 div.style.background = "#e8eaf6"; div.style.border = "2px solid #1a237e";
                 div.innerHTML = `<div class="titolo-battesimo" style="background:#1a237e"><input type="text" value="${item.titolo_wed || 'MATRIMONIO'}" style="background:none; border:none; color:white; font-weight:900; text-align:center; width:80%; outline:none; font-family:inherit; font-size:18px;" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({titolo_wed:this.value})"><button onclick="del('${item.id}')" style="float:right; background:none; border:none; color:white; cursor:pointer;">🗑️</button></div>
                     <div style="display:grid; gap:10px; padding:10px;">
-                        ${['sposo','sposa'].map(k => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[k+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_h']:this.value})"></div><div style="flex:1; display:flex; flex-direction:column; gap:5px;"><div style="display:flex; gap:10px;"><textarea class="nota-input" style="flex:2; font-weight:bold; font-size:16px;" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_t']:this.value})">${item[k+'_t']||(k.toUpperCase()+': ')}</textarea><textarea class="nota-input" style="flex:1; font-weight:bold; font-size:16px;" placeholder="TEL:" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_tel']:this.value})">${item[k+'_tel']||'TEL: '}</textarea></div><textarea class="nota-input" style="font-weight:bold; font-size:16px; border-top:1px dashed #eee;" placeholder="VIA:" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_via']:this.value})">${item[k+'_via']||'VIA: '}</textarea></div></div>`).join('')}
-                        ${['chiesa', 'sala'].map(key => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value})"></div><div style="flex:1"><textarea class="nota-input" style="font-weight:bold; font-size:16px;" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || (key.toUpperCase()+': ')}</textarea></div></div>`).join('')}
-                        <div class="esterni-grid" style="background:white; padding:10px; border-radius:10px;"><div class="esterni-header-label" style="color:#1a237e">ESTERNI</div>${[1,2,3,4,5].map(i => `<input type="text" class="loc-input" placeholder="Ora" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value})"><input type="text" class="loc-input" placeholder="Location" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">`).join('')}</div>
+                        ${['sposo','sposa'].map(k => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[k+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_h']:this.value}).then(()=>renderGiorno())"></div><div style="flex:1; display:flex; flex-direction:column; gap:5px;"><div style="display:flex; gap:10px;"><textarea class="nota-input" style="flex:2; font-weight:bold; font-size:16px;" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_t']:this.value})">${item[k+'_t']||(k.toUpperCase()+': ')}</textarea><textarea class="nota-input" style="flex:1; font-weight:bold; font-size:16px;" placeholder="TEL:" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_tel']:this.value})">${item[k+'_tel']||'TEL: '}</textarea></div><textarea class="nota-input" style="font-weight:bold; font-size:16px; border-top:1px dashed #eee;" placeholder="VIA:" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${k}_via']:this.value})">${item[k+'_via']||'VIA: '}</textarea></div></div>`).join('')}
+                        ${['chiesa', 'sala'].map(key => `<div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><div class="ora-box"><input type="text" class="ora-input" placeholder="00:00" value="${item[key+'_h']||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_h']:this.value}).then(()=>renderGiorno())"></div><div style="flex:1"><textarea class="nota-input" style="font-weight:bold; font-size:16px;" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['${key}_t']:this.value})">${item[key+'_t'] || (key.toUpperCase()+': ')}</textarea></div></div>`).join('')}
+                        <div class="esterni-grid" style="background:white; padding:10px; border-radius:10px;"><div class="esterni-header-label" style="color:#1a237e">ESTERNI</div>${[1,2,3,4,5].map(i => `<input type="text" class="loc-input" placeholder="Ora" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value}).then(()=>renderGiorno())"><input type="text" class="loc-input" placeholder="Location" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">`).join('')}</div>
                         <div class="slot-main" style="background:white; padding:10px; border-radius:10px;"><textarea class="nota-input" style="font-weight:bold; font-size:16px;" placeholder="NOTE" oninput="autoResize(this)" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({note_t:this.value})">${item.note_t || 'NOTE: '}</textarea></div>
-                        <div class="admin-block" style="border-color:#1a237e;"><div class="admin-top-row"><div class="admin-item">CONTRATTO <input type="checkbox" ${item.contratto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({contratto:this.checked})"></div><div class="admin-item">FOTO <input type="checkbox" ${item.foto?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({foto:this.checked})"></div><div class="admin-item">VIDEO <input type="checkbox" ${item.video?'checked':''} onchange="db.ref('agenda/${giornoCorrente}/${item.id}').update({video:this.checked})"></div><input type="text" class="input-adm" style="width:120px;" placeholder="OPERATORE" value="${item.operatore||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({operatore:this.value})"></div><div class="admin-grid">${[1,2,3,4,5,6].map(i => `<div class="admin-label-row">ACC. ${i}</div><input type="number" class="input-adm" style="width:70px" value="${item['acc'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['acc'+${i}]:this.value})"><input type="text" class="input-adm" style="width:100px" placeholder="DATA" value="${item['dat'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['dat'+${i}]:this.value})"><div class="adm-dots">${['ric','a','d'].map(k => `<div class="dot-s ${item['chi'+i]===k?'active':''}" style="background:${colMap[k][0]}" onclick="db.ref('agenda/${giornoCorrente}/${item.id}').update({['chi'+${i}]:'${k}'})">${colMap[k][1]}</div>`).join('')}</div>`).join('')}</div></div>
                     </div>`;
                 container.appendChild(div); div.querySelectorAll('textarea').forEach(autoResize); return;
             }
@@ -226,7 +258,7 @@ function renderGiorno() {
             else if(item.isWed && (item.t.startsWith("CHIESA:") || item.t.startsWith("SALA:") || item.t.startsWith("NOTE:"))) {
                 contentHTML = `<div class="slot-main"><div class="ora-box"><input type="text" class="ora-input" value="${item.h==='00:00'?'':item.h}" onblur="salvaCampo('${item.id}','h',this.value,'${item.h}')"></div><div style="flex:1"><textarea class="nota-input" style="font-weight:bold; font-size:16px;" oninput="autoResize(this)" onblur="salvaCampo('${item.id}','t',this.value,'${item.h}')">${item.t}</textarea></div></div>`;
             } else if(item.isWed && item.t.startsWith("ESTERNI:")) {
-                contentHTML = `<div class="esterni-grid"><div class="esterni-header-label">ESTERNI</div>${[1,2,3,4,5].map(i => `<input type="text" class="loc-input" placeholder="Ora" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value})"><input type="text" class="loc-input" placeholder="Location" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">`).join('')}</div>`;
+                contentHTML = `<div class="esterni-grid"><div class="esterni-header-label">ESTERNI</div>${[1,2,3,4,5].map(i => `<input type="text" class="loc-input" placeholder="Ora" value="${item['loc_h'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_h'+${i}]:this.value}).then(()=>renderGiorno())"><input type="text" class="loc-input" placeholder="Location" value="${item['loc_t'+i]||''}" onblur="db.ref('agenda/${giornoCorrente}/${item.id}').update({['loc_t'+${i}]:this.value})">`).join('')}</div>`;
             } else if (item.id.endsWith("_tel") || item.id.endsWith("_via")) { return; }
             else { contentHTML = `<div class="slot-main"><div class="ora-box ${(!mostraEtichettaOra && !item.isWed)?'hidden':''}"><input type="text" class="ora-input" value="${item.h}" onblur="salvaCampo('${item.id}','h',this.value,'${item.h}')"></div><textarea class="nota-input" oninput="autoResize(this)" onblur="salvaCampo('${item.id}','t',this.value,'${item.h}')">${item.t}</textarea></div>`; }
             div.innerHTML = contentHTML + `<div class="color-dots">${(!item.isWed && !item.isAdmin)?Object.keys(colMap).filter(k=>k!='def').map(k=>`<div class="dot ${item.c===k?'active':''}" style="background:${colMap[k][0]}" onclick="cambiaColore('${item.id}','${k}','${item.h}')">${colMap[k][1]}</div>`).join(''):''}<button onclick="del('${item.id}')" style="background:none; border:none; margin-left:10px; cursor:pointer;">🗑️</button></div>`;
@@ -234,12 +266,7 @@ function renderGiorno() {
         }
     });
 
-    // --- AGGIUNTA CHIRURGICA ---
-    setTimeout(() => {
-        document.querySelectorAll('textarea.nota-input').forEach(tx => autoResize(tx));
-    }, 150);
-    // ---------------------------
-
+    setTimeout(() => { document.querySelectorAll('textarea.nota-input').forEach(tx => autoResize(tx)); }, 150);
     window.scrollTo(0, scrollPos);
 }
 
@@ -248,17 +275,42 @@ function salvaCampo(id, campo, valore, oraDef, isSub=false) {
     const mainId = id.replace('_tel', '').replace('_via', '');
     const up = {[campo]:valore}; 
     const oraInput = document.querySelector(`#slot-${mainId} .ora-input`)?.value || oraDef;
-    if(oraInput !== undefined) { up.h = oraInput; up.sort = cleanH(oraInput); }
+    
+    if(oraInput !== undefined) { 
+        up.h = oraInput; 
+        up.sort = cleanH(oraInput); 
+    }
+    
     if(isSub) up.isSub=true; 
-    db.ref(`agenda/${giornoCorrente}/${id}`).update(up); 
+    
+    db.ref(`agenda/${giornoCorrente}/${id}`).update(up).then(() => {
+        // Se abbiamo salvato un orario, rinfreschiamo l'ordine della lista
+        if (campo === 'h') {
+            renderGiorno();
+        }
+    }); 
+
     if (campo === 't' && valore.trim().length > 1 && !isSub) { 
-        db.ref('notifiche_log').push({ timestamp: Date.now(), dataGiorno: giornoCorrente, rigaId: mainId, testo: `Ora: ${oraInput || '00:00'} - ${valore.substring(0,40)}` }); 
+        db.ref('notifiche_log').push({ 
+            timestamp: Date.now(), 
+            dataGiorno: giornoCorrente, 
+            rigaId: mainId, 
+            testo: `Ora: ${oraInput || '00:00'} - ${valore.substring(0,40)}` 
+        }); 
     }
 }
 function cambiaColore(id, c, oraDef) { 
     const mainId = id.replace('_tel', '').replace('_via', '');
     const oraAttuale = document.querySelector(`#slot-${mainId} .ora-input`)?.value || oraDef;
-    db.ref(`agenda/${giornoCorrente}/${id}`).update({c:(datiGiorno[id]?.c===c?'def':c), h:oraAttuale, sort:cleanH(oraAttuale)}); 
+    
+    db.ref(`agenda/${giornoCorrente}/${id}`).update({
+        c: (datiGiorno[id]?.c === c ? 'def' : c), 
+        h: oraAttuale, 
+        sort: cleanH(oraAttuale)
+    }).then(() => {
+        // Ricarichiamo per applicare il colore visivamente e mantenere l'ordine
+        renderGiorno();
+    }); 
 }
 function cambiaColoreMultiplo(id, campoC, colore) { db.ref(`agenda/${giornoCorrente}/${id}`).update({[campoC]: (datiGiorno[id]?.[campoC] === colore ? 'def' : colore)}); }
 function del(id) { if(confirm("Eliminare?")) { db.ref(`agenda/${giornoCorrente}/${id}`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_tel`).remove(); db.ref(`agenda/${giornoCorrente}/${id}_via`).remove(); } }
