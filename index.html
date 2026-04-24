@@ -8,6 +8,20 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Aggiunta chirurgica dello stile per il tasto Today */
+        .btn-today-header {
+            background: var(--a); /* Usa il colore accent del tuo CSS */
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+    </style>
 </head>
 <body>
 
@@ -20,6 +34,8 @@
         </div>
 
         <select id="monthPicker" onchange="initCalendar()"></select>
+        
+        <button onclick="saltaAggiOggi()" class="btn-today-header">TODAY</button>
         
         <button onclick="condividiWhatsApp()" class="btn-icon-header">➦</button>
     </div>
