@@ -199,3 +199,32 @@ input:checked + .slider:before { transform: translateX(14px); }
     .admin-grid { grid-template-columns: 1fr 1fr; }
     .admin-label-row { grid-column: span 2; background: #eee; padding: 2px 5px; }
 }
+
+/* Stile chirurgico per il tasto TODAY */
+.btn-today-header {
+    background-color: var(--a); /* Usa il colore arancione/accento che hai già nel sito */
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px; /* Lo facciamo arrotondato per distinguerlo dalle icone */
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.1s, background-color 0.2s;
+    text-transform: uppercase;
+    flex-shrink: 0; /* Impedisce al tasto di rimpicciolirsi se c'è poco spazio */
+}
+
+.btn-today-header:active {
+    transform: scale(0.92); /* Effetto pressione al click */
+    background-color: var(--p); /* Diventa leggermente più scuro (colore primary) */
+}
+
+/* Opzionale: se vedi che l'header è troppo affollato su cellulari piccoli */
+@media (max-width: 360px) {
+    .btn-today-header {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+}
